@@ -18,6 +18,23 @@ This project contains the following five modules:
 
 China A-Share stocks, the corresponding major index data (sz50, hs300, zz500, zz1000), and the member stock weights from 20150101 to 20211231, provided by Shanghai Probability Quantitative Investment.
 
+## Quick Start
+
+It's very easy to use this platform!
+
+Tips:
+
+- run each module at a time;
+- change config for corresponding module in respective files (file location indicated inside [run.py](run.py)).
+
+To run each module, in current directory:
+
+- factor generation: `python run.py gen`
+- backtest: `python run.py backtest`
+- factor combination: `python run.py comb`
+- portfolio optimization: `python run.py opt`
+- graph clustering: `python run.py cluster`
+
 ## Acknowledgement
 
-Special thanks to coworkers and my best friends at Shanghai Probability Quantitative Investment: Zhongyuan Wang, Zhenghang Xie, Cong Chen, Yihao Zhou, Weilin Chen, Yuhan Tao, Wan Zheng, and many others. This project would be impossible without their data, insights, and experiences.
+Special thanks to coworkers and my best friends at Shanghai Probability Quantitative Investment: Beilei Xu, Zhongyuan Wang, Zhenghang Xie, Cong Chen, Yihao Zhou, Weilin Chen, Yuhan Tao, Wan Zheng, and many others. This project would be impossible without their data, insights, and experiences.
