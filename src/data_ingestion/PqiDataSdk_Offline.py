@@ -83,7 +83,7 @@ class PqiDataSdkOffline:
         :return the list date of each stock 
         """
         list_date_path = os.path.join(PARSED_PATH, 'stock_basics', 'ListDate')
-        ser = pd.read_feather(list_date_path).set_index('index').squeeze()
+        ser = pd.read_feather(list_date_path).set_index('ticker').squeeze()
         list_date_dict = ser.to_dict()
         return list_date_dict
         
@@ -95,9 +95,6 @@ class PqiDataSdkOffline:
         sw_path = os.path.join(PARSED_PATH, 'industry_class', 'SWClass')
         df = pd.read_feather(sw_path).rename(columns={'ticker': 'con_code', 'class_code': 'index_code'})
         return df
-
-    def get_index_member_stock_weight(self):
-        pass 
 
     def get_eod_history(
             self,

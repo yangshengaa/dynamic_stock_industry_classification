@@ -1,0 +1,55 @@
+# data 
+data/raw
+data/parsed
+data/features
+
+# results 
+out/res
+out/signal_df
+
+# test_space 
+test_space.py
+
+# confidential files (contains trading strategies)
+src/factor_list.txt
+
+# data ingestion 
+src/data_ingestion/parse_raw.py 
+src/data_ingestion/test_PqiDataSdk_Offline.py
+src/data_ingestion/to_be_removed/*
+
+# factor generation
+src/factor_generation/available_factors/*
+src/factor_generation/factor_stats/*
+src/factor_generation/factor_validation/*
+src/factor_generation/process_raw/*
+src/factor_generation/log/failed_factors.txt
+src/factor_generation/raw_factor/factor_gen.py 
+src/factor_generation/raw_factor/factor_list.py
+src/factor_generation/raw_factor/pairs_modified.py
+src/factor_generation/raw_factor/support_factor_gen.py
+src/factor_generation/raw_factor/StyleFactorGenerator.py 
+src/factor_generation/raw_factor/style_factor_config.py
+
+# backtest
+src/backtest/bin/preview.py
+src/backtest/bin/batch_signal_test.py
+src/backtest/bin/single_signal_test.py
+src/backtest/configuration/factor_signal_test_list.py
+src/backtest/configuration/stock_list*
+src/backtest/res/*
+src/backtest/tools/preview_graph.py
+src/backtest/tools/risk_factorplot.py
+src/backtest/index_industry_breakdown.py
+src/backtest/y_neutralizer.py
+
+
+# to be added soon 
+src/factor_combination/*
+src/portfolio_optimization/*
+src/graph_cluster/*
+
+
+# python files 
+__pycache__/
+.gitignore

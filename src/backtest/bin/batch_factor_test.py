@@ -16,18 +16,19 @@ import traceback
 import numpy as np
 import pandas as pd
 import multiprocessing as mp
+from multiprocessing.shared_memory import SharedMemory
 
-sys.path.append("..")
+# sys.path.append("..")
 logging.basicConfig(level=logging.CRITICAL)
 
 # load files 
-from configuration import config as cfg
-from tools.datatools import DataAssist
-from single_factor_test import SingleFactorBacktest
+from src.backtest.configuration import config as cfg
+from src.backtest.tools.datatools import DataAssist
+from src.backtest.bin.single_factor_test import SingleFactorBacktest
 # from PqiDataSdk import *
 
-sys.path.append('../..')
-from data_ingestion.PqiDataSdk_Offline import PqiDataSdkOffline
+# sys.path.append('../..')
+from src.data_ingestion.PqiDataSdk_Offline import PqiDataSdkOffline
 
 
 class BasicBatchTest:
@@ -36,6 +37,7 @@ class BasicBatchTest:
         self.myconnector = PqiDataSdkOffline()
         self.start_date = cfg.start_date
         self.end_date = cfg.end_date
+        self.trade_dates = cfg.trade_dates
         self.stock_pool = self.myconnector.get_ticker_list()  # read all and mask later
         self.index_list = cfg.index_list
         pool_type = " + ".join(self.index_list) + ', ' + ('fmv weighted' if cfg.weight_index_by_fmv else 'equally weighted')
@@ -154,10 +156,12 @@ class BasicBatchTest:
         index_mask = DataAssist.get_index_mask(self.index_list)
 
         # read raw factor dataframe
-        feature_name_list = ["eod_" + feature_name for feature_name in test_factor_list]
+        # feature_name_list = ["eod_" + feature_name for feature_name in test_factor_list]
         factor_dict = {}
         for factor_name in test_factor_list:
-            factor_df = self.myconnector.read_eod_feature(factor_name)
+            factor_df = self.myconnector.read_eod_feature(
+                factor_name, dates=self.trade_dates
+            )
 
             # dynamic stock pool (change stock pool as the index member stocks changes)
             if not self.fix_stocks:
@@ -189,7 +193,7 @@ class BasicBatchTest:
         :return:
         """
         name = name + "," + self.usr
-        shm_address = mp.shared_memory.SharedMemory(name=name, create=True, size=data_nd.nbytes)
+        shm_address = SharedMemory(name=name, create=True, size=data_nd.nbytes)
         shm_nd_data = np.ndarray(data_nd.shape, dtype=data_nd.dtype, buffer=shm_address.buf)
         shm_nd_data[:] = data_nd[:]
 
@@ -197,7 +201,7 @@ class BasicBatchTest:
         # 清理SharedMemory的内存占用
         for k in self.all_key_list:
             try:
-                shm = mp.shared_memory.SharedMemory(name=k + "," + self.usr)
+                shm = SharedMemory(name=k + "," + self.usr)
                 shm.close()
                 shm.unlink()
             except Exception as e:
@@ -219,24 +223,24 @@ def processor(from_ds, factor, shape, ind_shape, index_shape, calendar_shape, us
     # 重构data_dict
     data_dict = dict()
     try:
-        shm_index = mp.shared_memory.SharedMemory(name='index' + "," + usr)
+        shm_index = SharedMemory(name='index' + "," + usr)
         index = np.ndarray((shape[0],), dtype='int', buffer=shm_index.buf)
         index = [str(x).zfill(6) for x in index]
-        shm_columns = mp.shared_memory.SharedMemory(name='columns' + "," + usr)
+        shm_columns = SharedMemory(name='columns' + "," + usr)
         columns = np.ndarray((shape[1],), dtype='int', buffer=shm_columns.buf)
         columns = [str(x) for x in columns]
 
-        shm_index_ind = mp.shared_memory.SharedMemory(name='index_ind' + "," + usr)
+        shm_index_ind = SharedMemory(name='index_ind' + "," + usr)
         index_ind = np.ndarray((ind_shape[0],), dtype='int', buffer=shm_index_ind.buf)
         index_ind = [str(x).zfill(6) for x in index_ind]
-        shm_columns_ind = mp.shared_memory.SharedMemory(name='columns_ind' + "," + usr)
+        shm_columns_ind = SharedMemory(name='columns_ind' + "," + usr)
         columns_ind = np.ndarray((ind_shape[1],), dtype='int', buffer=shm_columns_ind.buf)
         columns_ind = [str(x).zfill(6) for x in columns_ind]
 
-        shm_index_index_data = mp.shared_memory.SharedMemory(name='index_index_data' + "," + usr)
+        shm_index_index_data = SharedMemory(name='index_index_data' + "," + usr)
         index_index_data = np.ndarray((index_shape[0],), dtype='int', buffer=shm_index_index_data.buf)
         index_index_data = [str(x) for x in index_index_data]
-        shm_columns_index_data = mp.shared_memory.SharedMemory(name='columns_index_data' + "," + usr)
+        shm_columns_index_data = SharedMemory(name='columns_index_data' + "," + usr)
         columns_index_data = np.ndarray((index_shape[1],), dtype='int', buffer=shm_columns_index_data.buf)
         columns_index_data = [str(x) for x in columns_index_data]
 
@@ -244,28 +248,28 @@ def processor(from_ds, factor, shape, ind_shape, index_shape, calendar_shape, us
             key = key + "," + usr
             # 行业dataframe
             if key == "ind_df" + "," + usr:
-                shm_temp = mp.shared_memory.SharedMemory(name=key)
+                shm_temp = SharedMemory(name=key)
                 data_temp = np.ndarray(ind_shape, dtype='float64', buffer=shm_temp.buf).copy()
                 key = key.split(",")[0]
                 data_dict[key] = pd.DataFrame(data=data_temp, index=index_ind, columns=columns_ind)
 
             # 指数收益序列dataframe
             elif key == "index_data" + "," + usr:
-                shm_temp = mp.shared_memory.SharedMemory(name=key)
+                shm_temp = SharedMemory(name=key)
                 data_temp = np.ndarray(index_shape, dtype='float64', buffer=shm_temp.buf).copy()
                 key = key.split(",")[0]
                 data_dict[key] = pd.DataFrame(data=data_temp, index=index_index_data, columns=columns_index_data)
             
             # 日期序列dataframe
             elif key == "calendar" + "," + usr:
-                shm_temp = mp.shared_memory.SharedMemory(name=key)
+                shm_temp = SharedMemory(name=key)
                 data_temp = np.ndarray(calendar_shape, dtype='float64', buffer=shm_temp.buf).copy()
                 key = key.split(",")[0]
                 data_dict[key] = data_temp
 
             # eod_data_dict中的其余字段
             else:
-                shm_temp = mp.shared_memory.SharedMemory(name=key)
+                shm_temp = SharedMemory(name=key)
                 data_temp = np.ndarray(shape, dtype='float64', buffer=shm_temp.buf).copy()
                 key = key.split(",")[0]
                 data_dict[key] = pd.DataFrame(data=data_temp, index=index, columns=columns)
@@ -306,12 +310,14 @@ def save_record(summary_df):
         summary_df.to_csv(summary_file)
 
 
-if __name__ == '__main__':
-
+def run():
+    """ 
+    start batch testing
+    """
     factor_name_list = cfg.factor_name_list
     res_list = []
     batch_tester = BasicBatchTest()
-    try: 
+    try:
         batch_tester.run(namespace="", name_list=factor_name_list)
 
         # 定义进程池
@@ -322,15 +328,15 @@ if __name__ == '__main__':
             res_list.append(
                 pool.apply_async(
                     processor, args=(
-                        True, 
-                        [factor_df, factor_name], 
+                        True,
+                        [factor_df, factor_name],
                         batch_tester.shape,
-                        batch_tester.ind_shape, 
-                        batch_tester.index_shape, 
-                        batch_tester.calendar_shape, 
-                        batch_tester.usr, 
+                        batch_tester.ind_shape,
+                        batch_tester.index_shape,
+                        batch_tester.calendar_shape,
+                        batch_tester.usr,
                         batch_tester.key_list,
-            )))
+                    )))
 
         time.sleep(1)
 
@@ -353,11 +359,16 @@ if __name__ == '__main__':
         res_group_list = final_res_group_list
 
         # 记录因子
-        summary_df = pd.DataFrame(np.array(res_group_list), columns=cfg.summary_cols)
+        summary_df = pd.DataFrame(
+            np.array(res_group_list), columns=cfg.summary_cols)
         save_record(summary_df)
-    except Exception as e: 
+    except Exception as e:
         print(e)
         print(traceback.format_exc())
     finally:
         # 清理共享内存
         batch_tester.shmClean()
+
+
+# if __name__ == '__main__':
+#     run()

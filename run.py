@@ -40,7 +40,10 @@ def backtest():
     """ 
     run backtest
     """
-    pass 
+    from src.backtest.bin.batch_factor_test import run
+
+    run()
+
 
 def factor_combination():
     """

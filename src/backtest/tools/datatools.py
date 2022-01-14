@@ -7,13 +7,10 @@ import os
 import sys
 import numpy as np
 import pandas as pd
-sys.path.append("..")
 
 # load files 
-from configuration import config as cfg
-
-sys.path.append('../..')
-from data_ingestion.PqiDataSdk_Offline import PqiDataSdkOffline
+from src.backtest.configuration import config as cfg
+from src.data_ingestion.PqiDataSdk_Offline import PqiDataSdkOffline
 
 class DataAssist:
 
@@ -455,13 +452,16 @@ class DataAssist:
     # TODO: 更改行业读取方式
     def get_sw_ind_df(self, level=1):
         # sw1_df = (self.myconnector.get_sw_members(level=level))[["index_code", "con_code"]]
-        sw1_df = self.myconnector.get_sw_members()
-
+        # read and drop duplicates
+        sw1_df = self.myconnector.get_sw_members().drop_duplicates(subset=['con_code'])
+    
         inds = ["100000"] + list(set(sw1_df.index_code))
         ones = pd.Series(1, index=self.stock_pool)
-        temp = pd.concat([ones, sw1_df.set_index("con_code")],
-                         axis=1).reset_index().set_index(["index"]).loc[
-            self.stock_pool].reset_index().set_index(["index", "index_code"])
+        temp = pd.concat(
+            [ones, sw1_df.set_index("con_code")], axis=1
+        ).reset_index().set_index(["index"]).loc[
+            self.stock_pool
+        ].reset_index().set_index(["index", "index_code"])
         ind_df = pd.DataFrame(temp.unstack().fillna(0).values,
                               index=self.stock_pool, columns=inds).T
         return ind_df

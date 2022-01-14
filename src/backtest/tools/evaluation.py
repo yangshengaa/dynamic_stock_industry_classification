@@ -12,10 +12,10 @@ import numpy as np
 import pandas as pd
 
 warnings.filterwarnings("ignore")
-sys.path.append("..")
+# sys.path.append("..")
 
 # load files 
-from configuration import config as cfg
+from src.backtest.configuration import config as cfg
 
 # :param data_dict:
 #             keys: long_ret_series, short_ret_series, group_ret_series,index_ret_series,
@@ -262,7 +262,7 @@ class Evaluator:
             self.split_result_dict['long_short'].append(ls_simple_dict['long_short'])
 
 
-    def get_summary(self,long_summary,short_summary):
+    def get_summary(self, long_summary, short_summary):
         '''
         确定哪个是更高的那个summary
         :param long_summary:

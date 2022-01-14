@@ -1,10 +1,14 @@
-import pandas as pd
-import numpy as np
-import time
+"""
+record results 
+"""
+
 import os
 import sys
-sys.path.append("..")
-from configuration import config as cfg
+import time
+import numpy as np
+import pandas as pd
+
+from src.backtest.configuration import config as cfg
 
 class Recorder:
     def __init__(self, data_dict,factor_name):

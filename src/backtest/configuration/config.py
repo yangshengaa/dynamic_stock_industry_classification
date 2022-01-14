@@ -10,8 +10,7 @@ import pandas as pd
 
 # init dataserver
 # from PqiDataSdk import *
-sys.path.append("../..")
-from data_ingestion.PqiDataSdk_Offline import PqiDataSdkOffline
+from src.data_ingestion.PqiDataSdk_Offline import PqiDataSdkOffline
 
 user = getpass.getuser()
 
@@ -33,26 +32,26 @@ myconnector = PqiDataSdkOffline()
 '''
 # other factors read path
 # TODO: 成分股df
-index_member_stock_path = '../../../data/parsed/index_stock_weight'    # 成分股路径
-output_path = '../res'                                                 # 回测结果存储路径
-signal_df_output_path = '../signal_df'                                 # 模型持仓存放路径
-risk_fac_data_path = '../../../data/features/risk_factor'              # barra因子读取路径
+index_member_stock_path = 'data/parsed/index_stock_weight'    # 成分股路径
+output_path = 'out/res'                                       # 回测结果存储路径
+signal_df_output_path = 'out/signal_df'                       # 模型持仓存放路径
+risk_fac_data_path = 'data/features/risk_factor'              # barra因子读取路径
 # TODO: 计算barra因子
 
 # alpha factor read path 
-factor_path = '../../../data/features/factor'
+factor_path = 'data/features/factor'
 
 
 '''
 ============ BackTest Config =============
 '''
 # TODO: to English
-start_date = '20210101'
+start_date = '20160101'
 end_date = '20210630'
 adj_freq = 1  # 调仓周期
 freq = "D"  # 调仓模式，W为按周，D为按日
-group_num = 20 # 分组测试分组数量
-head = 200 # 多空组分别选取的股票数
+group_num = 10 # 分组测试分组数量
+head = 100 # 多空组分别选取的股票数
 cost = 0.0015 # 双边手续费
 return_type = 'open_to_open' # 收益的回看模式   # 建议都用oto，因为自选指数暂时只有oto
 ic_decay = 20 # IC Decay. 想看长周期可选100，短周期可选10
@@ -90,7 +89,7 @@ fix_stocks = False  # 如果fix_stocks为 False, 交易的票池与收益率基�
 # TODO: 添加静态
 # 静态（如果fix_stocks = True)
 fixed_pool = '1000'
-fixed_stock_pool = None  
+fixed_stock_pool = myconnector.get_ticker_list()
 if fix_stocks:
     # 固定票池名称，可选 "all", "300","500","800","1000","1200"
     if fixed_pool != "all":
@@ -112,7 +111,9 @@ risk_plot_benchmark_index = '000852'  # riskplot归因对比序列
 =============== factor / signal names =============
 '''
 
-from configuration.factor_signal_test_list import *
+cur_dir = os.path.dirname(__file__)
+sys.path.append(cur_dir)
+from factor_signal_test_list import *
 
 
 '''

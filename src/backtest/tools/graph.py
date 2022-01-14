@@ -1,11 +1,15 @@
+"""
+make plot
+"""
+
+import os
+import sys
 import pandas as pd
 import numpy as np
 import time
-import os
-import sys
 
-sys.path.append("..")
-from configuration import config as cfg
+
+from src.backtest.configuration import config as cfg
 import matplotlib.pyplot as plt
 
 
@@ -95,7 +99,7 @@ class Grapher:
 
     def plot_ls_no_cost(self, fig):
         """
-        fig1：多空收益与指数收益比较
+        fig1: 多空收益与指数收益比较
         """
         step = int(len(self.long_cum_after_cost.index) / 6)
         ax1 = fig.add_subplot(15, 2, 1)
