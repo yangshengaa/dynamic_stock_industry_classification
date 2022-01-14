@@ -40,4 +40,4 @@ smb_is_fmv = True  # True for fmv，false for tmv
 hml_is_bm = True  # True for bm，False for ep (ep not available)
 
 # factor list (hidden for github)
-from src.factor_generator.raw_factor.factor_list import * 
+from src.factor_generation.raw_factor.factor_list import * 

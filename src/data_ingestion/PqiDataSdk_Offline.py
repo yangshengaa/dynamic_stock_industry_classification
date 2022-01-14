@@ -77,11 +77,24 @@ class PqiDataSdkOffline:
     # ---------- EOD History ------------
     # ===================================
 
-    def get_ticker_list_date(self):
-        pass 
+    def get_ticker_list_date(self) -> Dict[str, str]:
+        """
+        get the list date of tickers
+        :return the list date of each stock 
+        """
+        list_date_path = os.path.join(PARSED_PATH, 'stock_basics', 'ListDate')
+        ser = pd.read_feather(list_date_path).set_index('index').squeeze()
+        list_date_dict = ser.to_dict()
+        return list_date_dict
+        
 
-    def get_sw_members(self):
-        pass 
+    def get_sw_members(self) -> pd.DataFrame:
+        """
+        return sw level 1 industry classification（申万一级行业分类）
+        """
+        sw_path = os.path.join(PARSED_PATH, 'industry_class', 'SWClass')
+        df = pd.read_feather(sw_path).rename(columns={'ticker': 'con_code', 'class_code': 'index_code'})
+        return df
 
     def get_index_member_stock_weight(self):
         pass 
