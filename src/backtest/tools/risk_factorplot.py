@@ -1,6 +1,6 @@
 """
 Plot risk attributions (separated from the RiskPlot project)
-TODO: 清除与AlphaTest重叠的部分
+TODO: fix plain risk attribution
 """
 
 # load packages

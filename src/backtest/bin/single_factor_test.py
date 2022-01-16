@@ -137,7 +137,6 @@ class SingleFactorBacktest:
         ).processor()
         return factor_df
 
-    # TODO: if have time, save as feather instead 
     def save_long_signal(self, long_batch_signal_df_list, short_batch_signal_df_list):
         """
         save long/short stock holdings. If the trade every n days, then there will be n csv. 
@@ -211,14 +210,14 @@ class SingleFactorBacktest:
         # print('----------{} Computing Factors take {}s-----------\n'.format(self.factor_name, int(time.time() - t)))
 
         # IC，long/short，group test
-        print('----------Start Testing {}-----------'.format(self.factor_name))
+        print('----------Start Testing {} -----------'.format(self.factor_name))
         t = time.time()
         self.Evaluator = Evaluator(self.DataAssist, self.factor_df, self.factor_name)
         self.Evaluator.run_eval()
-        print('----------{} Testing takes {}s-----------\n'.format(self.factor_name, int(time.time() - t)))
+        print('----------{} Testing takes {}s -----------\n'.format(self.factor_name, int(time.time() - t)))
 
         # graphing and reports
-        print('----------Start Plotting {}-----------'.format(self.factor_name))
+        print('----------Start Plotting {} -----------'.format(self.factor_name))
         t = time.time()
         self.Grapher = Grapher(self.Evaluator.data_dict)
         self.Grapher.save_fig(self.factor_name)
@@ -231,8 +230,8 @@ class SingleFactorBacktest:
 
         if cfg.risk_plot_required:
             self.signal_riskplot()  # barra风险归因  # TODO: 修复Barra归因
-        print('----------{} Plotting Takes{}s-----------\n'.format(self.factor_name, int(time.time() - t)))
-        print('----------Testing Finishes {}-----------'.format(self.factor_name))
+        print('----------{} Plotting Takes{}s -----------\n'.format(self.factor_name, int(time.time() - t)))
+        print('----------Testing Finishes {} -----------'.format(self.factor_name))
         return self.Recorder.summary_result_list
 
 

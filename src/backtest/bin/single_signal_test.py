@@ -151,24 +151,24 @@ class SingleSignalBacktest:
         # t = time.time()
         # print('----------{}计算因子用时{}s-----------\n'.format(self.signal_name, int(time.time() - t)))
 
-        print('---------- Start Testing {}-----------'.format(self.signal_name))
+        print('---------- Start Testing {} -----------'.format(self.signal_name))
         t = time.time()
         self.Evaluator = SignalEvaluator(self.DataAssist, self.signal_df,self.signal_name)
         self.Evaluator.run_signal_eval()
         # extract long, short signals
         self.long_signal_df = self.Evaluator.long_signal_df
         self.short_signal_df = self.Evaluator.short_signal_df
-        print('----------{} Testing takes {}s-----------\n'.format(self.signal_name, int(time.time() - t)))
-        print('---------- Start Plotting {}-----------'.format(self.signal_name))
+        print('----------{} Testing takes {}s -----------\n'.format(self.signal_name, int(time.time() - t)))
+        print('---------- Start Plotting {} -----------'.format(self.signal_name))
         t = time.time()
         self.Grapher = SignalGrapher(self.Evaluator.data_dict)
         self.Grapher.save_fig(self.signal_name)
         # riskplot
         if cfg.risk_plot_required:
             self.signal_riskplot()  # barra risk attribution
-        print('----------{} Plotting Takes {}s-----------\n'.format(self.signal_name, int(time.time() - t)))
+        print('----------{} Plotting Takes {}s -----------\n'.format(self.signal_name, int(time.time() - t)))
         self.SignalRecorder = SignalRecorder(self.Evaluator.data_dict,self.signal_name)
-        print('----------Testing Finishes {}-----------'.format(self.signal_name))
+        print('----------Testing Finishes {} -----------'.format(self.signal_name))
         return self.SignalRecorder.summary_result_list
 
 

@@ -33,8 +33,7 @@ class DataAssist:
             self.eod_data_dict = eod_data_dict
             self.stock_pool = list(self.eod_data_dict["ClosePrice"].index)
             self.calendar = [str(x) for x in self.eod_data_dict['calendar']]
-        else:
-            # TODO: 新数据接口
+        else: 
             # self.myconnector = PqiDataSdk(user=cfg.user, size=cfg.ds_max_processes, pool_type="mp", log=False,
             #                               offline=True)
             self.myconnector = PqiDataSdkOffline()

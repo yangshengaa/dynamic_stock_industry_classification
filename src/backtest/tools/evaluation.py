@@ -26,7 +26,7 @@ class Evaluator:
     Evaluator类，测试共分三种类型，IC测试、多空测试与分层回测
     """
 
-    def __init__(self, data_assist, factor_df,factor_name):
+    def __init__(self, data_assist, factor_df, factor_name):
         self.DataAssist = data_assist
         self.factor_df = factor_df
         self.factor_name = factor_name
