@@ -35,7 +35,6 @@ src/backtest/configuration/factor_signal_test_list.py
 src/backtest/configuration/stock_list*
 src/backtest/res/*
 src/backtest/tools/preview_graph.py
-src/backtest/tools/risk_factorplot.py
 src/backtest/index_industry_breakdown.py
 src/backtest/y_neutralizer.py
 

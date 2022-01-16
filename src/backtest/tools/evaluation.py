@@ -80,13 +80,13 @@ class Evaluator:
         '''
         t = time.time()
         self.run_ic_test()
-        print("IC测试用时:{}s".format(int(time.time()-t)))
+        print("IC Testing takes {}s".format(int(time.time()-t)))
         t = time.time()
         self.run_long_short_test() 
-        print("多空测试用时:{}s".format(int(time.time() - t)))
+        print("Long Short takes {}s".format(int(time.time() - t)))
         t = time.time()
         self.get_group_res()
-        print("分组测试用时:{}s".format(int(time.time() - t)))
+        print("Group Testing takes {}s".format(int(time.time() - t)))
         t = time.time()
         self.data_dict = {
             "factor_name": self.factor_name,
@@ -131,7 +131,7 @@ class Evaluator:
             "long_batch_signal_df_list": self.long_batch_signal_df_list,
             "short_batch_signal_df_list": self.short_batch_signal_df_list
         }
-        print("数据储存用时:{}s".format(int(time.time() - t)))
+        print("Data Saving takes {}s".format(int(time.time() - t)))
 
 
 
@@ -1098,7 +1098,7 @@ class SignalEvaluator:
         '''
         t = time.time()
         self.run_long_short_signal_test()
-        print("信号测试用时:{}s".format(int(time.time() - t)))
+        print("Signal Testing takes {}s".format(int(time.time() - t)))
         self.data_dict = {
             "signal_name":self.signal_name,
             "index_ret_series": self.DataAssist.index_ret_series,

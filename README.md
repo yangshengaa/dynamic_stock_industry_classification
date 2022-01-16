@@ -43,6 +43,8 @@ To run each submodules, in current directory:
 - generate pairs factors: `python run.py pairs`
 - generate risk factors: `python run.py gen_risk`
 
+Currently risk attribution module is very slow and suboptimal. To be addressed later.
+
 ## Acknowledgement
 
 Special thanks to coworkers and my best friends at Shanghai Probability Quantitative Investment: Beilei Xu, Zhongyuan Wang, Zhenghang Xie, Cong Chen, Yihao Zhou, Weilin Chen, Yuhan Tao, Wan Zheng, and many others. This project would be impossible without their data, insights, and experiences.
@@ -51,5 +53,5 @@ Special thanks to coworkers and my best friends at Shanghai Probability Quantita
 
 Log known issues here:
 
-- signals given by factor test could not give the same alpha returns (slightly less) as in signal test 
+- signals given by factor test could not give the same alpha returns (slightly less) as in signal test
   - examine output holding stats

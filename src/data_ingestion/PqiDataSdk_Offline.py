@@ -61,11 +61,23 @@ class PqiDataSdkOffline:
         selected_trade_dates = self.trade_dates[start_idx:end_idx]
         return selected_trade_dates
 
-    def get_next_trade_day(self, date):
-        pass 
+    def get_next_trade_date(self, date: str) -> str:
+        """ get next trade date (if empty output '') """
+        cur_idx = np.where(self.trade_dates <= date)[0][-1]
+        if cur_idx < len(self.trade_dates) - 1:
+            next_day = self.trade_dates[cur_idx + 1]
+        else:
+            next_day = ''
+        return next_day
 
-    def get_prev_trade_day(self, date):
-        pass 
+    def get_prev_trade_date(self, date: str) -> str:
+        """ get previous trade dates """
+        cur_idx = np.where(self.trade_dates >= date)[0][0] 
+        if cur_idx > 0: 
+            prev_day = self.trade_dates[cur_idx - 1]
+        else:
+            prev_day = ''
+        return prev_day
 
     def get_ticker_list(self):
         """ 

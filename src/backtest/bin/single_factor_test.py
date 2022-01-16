@@ -19,7 +19,7 @@ from src.backtest.tools.factools import FactorTools
 from src.backtest.tools.graph import Grapher
 from src.backtest.tools.evaluation import Evaluator
 from src.backtest.tools.record import Recorder
-# from src.backtest.tools.risk_factorplot import risk_plotter
+from src.backtest.tools.risk_factorplot import risk_plotter
 
 
 class SingleFactorBacktest:

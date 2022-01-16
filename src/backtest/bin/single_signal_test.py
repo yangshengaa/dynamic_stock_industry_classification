@@ -13,7 +13,7 @@ from src.backtest.tools.datatools import DataAssist
 from src.backtest.tools.graph import SignalGrapher
 from src.backtest.tools.evaluation import SignalEvaluator
 from src.backtest.tools.record import SignalRecorder
-# from src.backtest.tools.risk_factorplot import risk_plotter
+from src.backtest.tools.risk_factorplot import risk_plotter
 
 
 class SingleSignalBacktest:

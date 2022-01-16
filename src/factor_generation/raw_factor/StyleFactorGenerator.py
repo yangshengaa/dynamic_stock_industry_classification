@@ -194,7 +194,7 @@ class StyleFactorGenerator(object):
         plain_df_saving_path = os.path.join(self.saving_path, 'plain_df_indicator')
         if not os.path.exists(plain_df_saving_path):
             os.mkdir(plain_df_saving_path)
-        self.plain_df.astype(int).to_csv(plain_df_saving_path + 'plain_df.csv')
+        self.plain_df.astype(int).to_csv(os.path.join(plain_df_saving_path, 'plain_df.csv'))
     
 
     def calc_style_fac(self):

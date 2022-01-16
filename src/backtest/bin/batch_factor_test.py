@@ -123,6 +123,8 @@ class BasicBatchTest:
         """
         # read index mask 
         index_mask = DataAssist.get_index_mask(self.index_list)
+        # print(index_mask)
+        # print(index_mask.sum())
 
         # read raw factor dataframe
         factor_dict = {}

@@ -35,9 +35,9 @@ signal_df_output_path = 'out/signal_df'                       # factor/signal ho
 risk_fac_data_path = 'data/features/risk_factor'              # barra risk factor path
 
 # alpha factor read path 
-# factor_path = 'data/features/factor'  # for alpha factors
-factor_path = 'out/signal_df'           # for holding signals test
-factor_path += '/cokurt_40_zz1000_fmv_100_1'
+factor_path = 'data/features/factor'  # for alpha factors
+# factor_path = 'out/signal_df'           # for holding signals test
+# factor_path += '/cokurt_40_zz1000_fmv_100_1'
 
 '''
 ============ BackTest Config =============
@@ -100,7 +100,7 @@ return_benchmark_index = 'zz500'
 
 # TODO: edit risk plots
 # riskplot对标收益序列 # !!! (如需使用riskplot，请先用因子生成平台生成风格因子值和因子收益率)
-risk_plot_required = False  # 是否做riskplot分析
+risk_plot_required = True  # 是否做riskplot分析
 risk_plot_benchmark_index = '000852'  # riskplot归因对比序列
 # 备注: 除中证1000外，其余都从2015年1月30号开始有权重；1000从15年5月29号开始有权重。请酌情设置回测区间
 
