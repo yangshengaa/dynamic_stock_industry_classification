@@ -19,8 +19,6 @@ from multiprocessing.shared_memory import SharedMemory
 from typing import List, Dict
 
 warnings.filterwarnings('ignore')
-# sys.path.append('..')
-# print(sys.path)
 # user = getpass.getuser()  # otherwise filename too long
 user = ''
 

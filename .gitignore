@@ -28,13 +28,9 @@ src/factor_generation/raw_factor/factor_gen.py
 src/factor_generation/raw_factor/factor_list.py
 src/factor_generation/raw_factor/pairs_modified.py
 src/factor_generation/raw_factor/support_factor_gen.py
-src/factor_generation/raw_factor/StyleFactorGenerator.py 
-src/factor_generation/raw_factor/style_factor_config.py
 
 # backtest
 src/backtest/bin/preview.py
-src/backtest/bin/batch_signal_test.py
-src/backtest/bin/single_signal_test.py
 src/backtest/configuration/factor_signal_test_list.py
 src/backtest/configuration/stock_list*
 src/backtest/res/*

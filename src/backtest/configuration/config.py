@@ -9,7 +9,6 @@ import getpass
 import pandas as pd
 
 # init dataserver
-# from PqiDataSdk import *
 from src.data_ingestion.PqiDataSdk_Offline import PqiDataSdkOffline
 
 user = getpass.getuser()
@@ -23,24 +22,22 @@ test_name = 'test'
 max_processes = 8  # batch testing max processors to use
 ds_max_processes = 12  # Dataserver读取数据的最大进程数
 
-# TODO: initialize other dataset 
-# myconnector = PqiDataSdk(user=user, size=ds_max_processes, pool_type="mp", log=False, offline=True)
+# init data server 
 myconnector = PqiDataSdkOffline()
 
 '''
 ========= Path Config ==========
 '''
 # other factors read path
-# TODO: 成分股df
-index_member_stock_path = 'data/parsed/index_stock_weight'    # 成分股路径
-output_path = 'out/res'                                       # 回测结果存储路径
-signal_df_output_path = 'out/signal_df'                       # 模型持仓存放路径
-risk_fac_data_path = 'data/features/risk_factor'              # barra因子读取路径
-# TODO: 计算barra因子
+index_member_stock_path = 'data/parsed/index_stock_weight'    # member stock path
+output_path = 'out/res'                                       # backtest record path 
+signal_df_output_path = 'out/signal_df'                       # factor/signal holding path
+risk_fac_data_path = 'data/features/risk_factor'              # barra risk factor path
 
 # alpha factor read path 
-factor_path = 'data/features/factor'
-
+# factor_path = 'data/features/factor'  # for alpha factors
+factor_path = 'out/signal_df'           # for holding signals test
+factor_path += '/cokurt_40_zz1000_fmv_100_1'
 
 '''
 ============ BackTest Config =============
@@ -101,7 +98,7 @@ if fix_stocks:
 use_independent_return_benchmark = False
 return_benchmark_index = 'zz500'  
 
-
+# TODO: edit risk plots
 # riskplot对标收益序列 # !!! (如需使用riskplot，请先用因子生成平台生成风格因子值和因子收益率)
 risk_plot_required = False  # 是否做riskplot分析
 risk_plot_benchmark_index = '000852'  # riskplot归因对比序列
@@ -110,6 +107,8 @@ risk_plot_benchmark_index = '000852'  # riskplot归因对比序列
 '''
 =============== factor / signal names =============
 '''
+# for signal in particular, if read from feather
+read_from_feather = True 
 
 cur_dir = os.path.dirname(__file__)
 sys.path.append(cur_dir)
@@ -120,7 +119,4 @@ from factor_signal_test_list import *
 =============== others ======================
 '''
 
-# 其他中间变量
-# TODO: other trade dates 
-# trade_dates = myconnector.get_trade_dates(start_date=start_date, end_date=end_date)
 trade_dates = myconnector.select_trade_dates(start_date, end_date)
