@@ -26,16 +26,32 @@ It's very easy to use this platform!
 
 Tips:
 
-- run each module at a time;
+- run each module at a time, and run the following command sequentially;
 - change config for corresponding module in respective files (file location indicated inside [run.py](run.py)).
 
 To run each module, in current directory:
 
+Factor Generation:
+
 - factor generation: `python run.py gen`
+
+Backtest:
+
 - backtest factor: `python run.py backtest_factor`
 - backtest signal: `python run.py backtest_signal`
+
+Factor Combination:
+
 - factor combination: `python run.py comb`
-- portfolio optimization: `python run.py opt`
+
+Portfolio Optimization:
+
+- generate factor returns: `python run.py opt_fac_ret`
+- estimate covariance matrices: `python run.py opt_cov_est`
+- adjust weight: `python run.py opt_weight`
+
+Graph Clustering:
+
 - graph clustering: `python run.py cluster`
 
 To run each submodules, in current directory:
@@ -55,3 +71,4 @@ Log known issues here:
 
 - signals given by factor test could not give the same alpha returns (slightly less) as in signal test
   - examine output holding stats
+- plain risk attribution

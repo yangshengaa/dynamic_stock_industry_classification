@@ -172,7 +172,7 @@ class PqiDataSdkOffline:
         read feature by name 
 
         :param feature_name: the name fo the feature 
-        :param des: the destination to retrieve factor. Supporting 'factor', 'support_factor', 'risk_factor'
+        :param des: the destination to retrieve factor. Supporting 'factor', 'support_factor', 'risk_factor', 'ml_factor'
         :param dates: the dates of the list. If empty, read all dates available
         :return a feature dataframe 
         """
@@ -196,7 +196,7 @@ class PqiDataSdkOffline:
         
         :param feature_name: the name of the feature 
         :param feature_df: dataframe
-        :param des: the destination of the path. Supporting 'factor', 'support_factor', 'risk_factor'
+        :param des: the destination of the path. Supporting 'factor', 'support_factor', 'risk_factor', 'ml_factor'
         """
         feature_path = os.path.join(FEATURE_PATH, des, f'eod_{feature_name}')
         feature_df.reset_index().to_feather(feature_path)

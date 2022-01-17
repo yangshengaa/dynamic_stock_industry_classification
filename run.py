@@ -2,8 +2,13 @@
 run modules
 
 major modules:
+
+Factor Generation:
+
 - 'gen': factor geneartor 
     - config in 'factor_generation/raw_factor/config.py'
+
+Backtest: 
 
 - 'backtest_factor': factor backtest (continuous values on each cross section)
     - config in 'backtest/configuration/config.py'
@@ -11,11 +16,24 @@ major modules:
 - 'backtest_signal': signal backtest (0, 1, -1 on each cross section)
     - config in 'backtest/configuration/config.py'
 
+Factor Combination 
+
 - 'comb': factor combination (ML)
     - config in 'factor_combination/configuration/config.py'
 
-- 'opt': portfolio optimization 
-    - config in 'portfolio_optimizer
+Portfolio Optimization
+
+- 'opt_fac_ret': generate risk factor returns 
+    - config in 'portfolio_optimizer/config.py'
+
+- 'opt_cov_est': covariance estimation 
+    - config in 'portfolio_optimizer/config.py'
+
+- 'opt_weight': optimize weight
+    - config in 'portfolio_optimizer/config.py'
+
+
+Graph Clustering 
 
 - 'cluster': graph clustering 
 
@@ -34,6 +52,7 @@ import sys
 # ------- module ----------
 # =========================
 
+# ----- factor gen -------
 def generator_factor():
     """ run factor geneartion """
     from src.factor_generation.raw_factor.FactorGenerator import FactorGenerator
@@ -41,6 +60,7 @@ def generator_factor():
     fg = FactorGenerator()
     fg.run()
 
+# ------ backtest --------
 def backtest_factor():
     """ run factor backtest """
     from src.backtest.bin.batch_factor_test import run
@@ -53,13 +73,36 @@ def backtest_signal():
 
     run()
 
+
+# ------ factor combination ------
 def factor_combination():
     """ run ml on factors """
-    pass 
+    from src.factor_combination.bins.ModelTrain import run
 
-def portfolio_optimization():
-    """ run portfolio optimization """
-    pass 
+    run()
+
+# ----- portfolio optimization ------
+def portfolio_optimization_fac_ret():
+    """ run factor return generation """
+    from src.portfolio_optimization.FactorReturnGenerator import FactorReturnGenerator
+
+    loading_process = FactorReturnGenerator()
+    loading_process.start_cal_return_process()
+
+def portfolio_optimization_cov_est():
+    """ run covariance estimation """
+    from src.portfolio_optimization.CovMatrixEstimator import CovMatrixEstimator
+
+    calculating_process = CovMatrixEstimator()
+    calculating_process.start_cal_cov_process()
+
+def portfolio_optimization_weight():
+    """ adjust weight """
+    from src.portfolio_optimization.WeightOptimizer import WeightOptimizer
+
+    calculating_process = WeightOptimizer()
+    calculating_process.start_weight_optimize_process()
+
 
 # =======================
 # ------ others ---------
@@ -107,8 +150,14 @@ def main(targets):
         factor_combination()
     
     # Markowitz portfolio optimization
-    elif 'opt' in targets:
-        portfolio_optimization()
+    elif 'opt_cov_est' in targets:
+        portfolio_optimization_cov_est()
+    
+    elif 'opt_fac_ret' in targets:
+        portfolio_optimization_fac_ret()
+
+    elif 'opt_weight' in targets:
+        portfolio_optimization_weight()
 
 
     # ---------- side modules ------------

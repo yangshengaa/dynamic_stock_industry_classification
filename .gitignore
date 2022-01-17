@@ -6,6 +6,7 @@ data/features
 # results 
 out/res
 out/signal_df
+out/model*
 
 # test_space 
 test_space.py
@@ -38,10 +39,17 @@ src/backtest/tools/preview_graph.py
 src/backtest/index_industry_breakdown.py
 src/backtest/y_neutralizer.py
 
+# factor combination 
+src/factor_combination/configuration/factor_list.py
+src/factor_combination/configuration/*.txt
+src/factor_combination/res/
+src/factor_combination/bins/ParaSearch.py
+
+# portfolio optimization
+src/portfolio_optimization/PlotRisk.py
+src/portfolio_optimization/FactorSignificanceTest.py
 
 # to be added soon 
-src/factor_combination/*
-src/portfolio_optimization/*
 src/graph_cluster/*
 
 
