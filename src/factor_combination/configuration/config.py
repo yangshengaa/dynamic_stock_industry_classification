@@ -12,8 +12,8 @@ from src.data_ingestion.PqiDataSdk_Offline import PqiDataSdkOffline
 myconnector = PqiDataSdkOffline()
 
 # ------ test range ------------
-start_date = "20190101"  
-end_date = "20210630"  
+start_date = "20160101"  
+end_date = "20211231"  
 trade_dates = myconnector.select_trade_dates(start_date=start_date, end_date=end_date)
 
 # set stock pool 
@@ -46,7 +46,7 @@ skip_features = None
 
 # * -------- model selection -------- * 
 # 'linear', 'xgb', 'Lgb', 'rf'
-model_selection = 'linear'
+model_selection = 'lgb'
 
 # ————————traing config ————————
 cost = 0.0015
@@ -161,8 +161,8 @@ lgb_rolling_paras = False # 是否进行滚动调参
 
 # ———————— RF parameters ————————
 rf_paras = {
- 'n_estimators': 100,
- 'max_depth': 15,
+ 'n_estimators': 200,
+ 'max_depth': 30,
  'min_samples_leaf': 25,
  'n_jobs': -1
 }

@@ -7,9 +7,10 @@ data/features
 out/res
 out/signal_df
 out/model*
+out/log/
 
 # test_space 
-test_space.py
+test_space*
 
 # confidential files (contains trading strategies)
 src/factor_list.txt

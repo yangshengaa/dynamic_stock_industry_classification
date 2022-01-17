@@ -68,10 +68,10 @@ class DataTools:
 
         # get factors
         self.factor_dict = self.get_eod_feature(tickers=self.stock_pool, date_list=self.date_list)
-        self.ind_df = self.get_sw_ind_df()
-        for k in self.eod_data_dict.keys():
-            self.eod_data_dict[k].columns = [str(x) for x in self.eod_data_dict[k].columns]
-        self.eod_data_dict["ind_df"] = self.ind_df
+        # self.ind_df = self.get_sw_ind_df()
+        # for k in self.eod_data_dict.keys():
+        #     self.eod_data_dict[k].columns = [str(x) for x in self.eod_data_dict[k].columns]
+        # self.eod_data_dict["ind_df"] = self.ind_df
 
         self.lag_date = cfg.lag_date
         df_columns = []
@@ -438,7 +438,7 @@ class DataTools:
         # populate
         for feature in self.features:
             feature_name = feature[:-2]  # remove lag
-            lag = int(feature[-1])
+            lag = int(feature[-1])       # extract lag 
             self.train_data[feature] = self.factor_dict[feature_name][train_date_list[self.lag_date - 1 - lag:len(train_date_list) - lag]].stack(dropna=False).values
             self.test_data[feature] = self.factor_dict[feature_name][test_date_list[self.lag_date - 1 - lag:len(test_date_list) - lag]].stack(dropna=False).values
         self.train_data['label'] = self.return_data[train_date_list[self.lag_date - 1:]].stack(dropna=False).values
@@ -506,7 +506,8 @@ class DataTools:
         change values 4 times away from the median to be nan 
         change values between 2.5 - 4 times away from the median to be 2.5 times away 
         """
-        self.train_X.iloc[:, :] = np.where(np.isinf(self.train_X.values), np.nan, self.train_X.values)
+        # self.train_X.iloc[:, :] = np.where(np.isinf(self.train_X.values), np.nan, self.train_X.values)
+        # self.train_X = self.train_X + self.train_X * 0
 
         QT90 = np.nanquantile(self.train_X, 0.9, axis=0)
         QT50 = np.nanquantile(self.train_X, 0.5, axis=0)
@@ -523,15 +524,38 @@ class DataTools:
             keepValues = self.train_X[skip_features[skip_idx]].copy(deep = True)
 
         # assign nan to too large/small a value 
-        self.train_X.iloc[:, :] = np.where(self.train_X > ExUP, np.nan, self.train_X)
-        self.train_X.iloc[:, :] = np.where(self.train_X < ExDOWN, np.nan, self.train_X)
+        condition = (self.train_X > ExUP) | (self.train_X < ExDOWN)
+        self.train_X = pd.DataFrame(
+            np.where(condition, np.nan, self.train_X),
+            index=self.train_X.index,
+            columns=self.train_X.columns
+        )
+        # self.train_X.iloc[:, :] = np.where(self.train_X > ExUP, np.nan, self.train_X)
+        # self.train_X.iloc[:, :] = np.where(self.train_X < ExDOWN, np.nan, self.train_X)
         # winsorize
-        self.train_X.iloc[:, :] = np.where(self.train_X > UP, UP, self.train_X)
-        self.train_X.iloc[:, :] = np.where(self.train_X < DOWN, DOWN, self.train_X)
-        self.test_X.iloc[:, :] = np.where(self.test_X > UP, UP, self.test_X)
-        self.test_X.iloc[:, :] = np.where(self.test_X < DOWN, DOWN, self.test_X)
-        cutted_UP_X = np.sum((self.train_X.values > UP - 1e-7), axis=0) / self.train_X.values.shape[0]
-        cutted_DOWN_X = np.sum((self.train_X.values < DOWN + 1e-7), axis=0) / self.train_X.values.shape[0]
+        # self.train_X.iloc[:, :] = np.where(self.train_X > UP, UP, self.train_X)
+        self.train_X = pd.DataFrame(
+            np.where(self.train_X > UP, UP, self.train_X), 
+            index=self.train_X.index, columns=self.train_X.columns
+        )
+        # self.train_X.iloc[:, :] = np.where(self.train_X < DOWN, DOWN, self.train_X)
+        self.train_X = pd.DataFrame(
+            np.where(self.train_X < DOWN, DOWN, self.train_X), 
+            index=self.train_X.index, columns=self.train_X.columns
+        )
+        # self.test_X.iloc[:, :] = np.where(self.test_X > UP, UP, self.test_X)
+        # self.test_X.iloc[:, :] = np.where(self.test_X < DOWN, DOWN, self.test_X)
+
+        self.test_X = pd.DataFrame(
+            np.where(self.test_X > UP, UP, self.test_X),
+            index=self.test_X.index, columns=self.test_X.columns
+        )
+        self.test_X = pd.DataFrame(
+            np.where(self.test_X < DOWN, DOWN, self.test_X),
+            index=self.test_X.index, columns=self.test_X.columns
+        )
+        cutted_UP_X = np.sum((self.train_X.values > UP - 1e-7), axis=0) / self.train_X.shape[0]
+        cutted_DOWN_X = np.sum((self.train_X.values < DOWN + 1e-7), axis=0) / self.train_X.shape[0]
 
         if self.skip_features is not None:
             cutted_UP_X[skip_idx] = np.nan
@@ -561,15 +585,21 @@ class DataTools:
 
     def delete_nan(self):
         """ empirical adjustment: take away samples that have too much nan (larger than 30% of factor values) """
-        na_pct = np.sum(np.isnan(self.train_X), axis=1) / self.train_X.shape[1]
-        cut_na_points = (na_pct > 0.3).values.reshape(self.train_Y.shape)
-        self.train_Y.iloc[:] = np.where(cut_na_points, np.nan, self.train_Y)
+        # na_pct = np.sum(np.isnan(self.train_X), axis=1) / self.train_X.shape[1]
+        # cut_na_points = (na_pct > 0.3).values.reshape(self.train_Y.shape)
+        # print(cut_na_points)
+        cut_na_points = self.train_X.isna().mean(axis=1) > 0.3
+        # cut_na_points = 
+        # self.train_Y.iloc[:] = np.where(cut_na_points, np.nan, self.train_Y)
+        self.train_Y = pd.Series(np.where(cut_na_points, np.nan, self.train_Y), index=self.train_Y.index)
         print(f'Deleted NA samples {round(np.sum(cut_na_points) / self.train_X.shape[0] * 100, 3)}%')
         print(f'Deleted NA samples {np.sum(cut_na_points)}')
 
-        na_pct = np.sum(np.isnan(self.test_X), axis=1) / self.test_X.shape[1]
-        cut_na_points = (na_pct > 0.3).values.reshape(self.test_Y.shape)
-        self.test_Y.iloc[:] = np.where(cut_na_points, np.nan, self.test_Y)
+        # na_pct = np.sum(np.isnan(self.test_X), axis=1) / self.test_X.shape[1]
+        # cut_na_points = (na_pct > 0.3).values.reshape(self.test_Y.shape)
+        cut_na_points = self.test_X.isna().mean(axis=1) > 0.3
+        # self.test_Y.iloc[:] = np.where(cut_na_points, np.nan, self.test_Y)
+        self.test_Y = pd.Series(np.where(cut_na_points, np.nan, self.test_Y), index=self.test_Y.index)
 
     def clean_y_nan(self):
         """ remove corresponding y values """

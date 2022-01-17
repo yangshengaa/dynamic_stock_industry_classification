@@ -186,13 +186,14 @@ class SingleFactorBacktest:
             is_long=True
         )
 
-        # short holding stats
-        risk_plotter().plot(
-            fig_name=self.factor_name_saved,
-            csv_paths=self.short_signal_df_paths,
-            saving_path=riskplot_save_path,
-            is_long=False
-        )
+        # don't output short yet
+        # # short holding stats
+        # risk_plotter().plot(
+        #     fig_name=self.factor_name_saved,
+        #     csv_paths=self.short_signal_df_paths,
+        #     saving_path=riskplot_save_path,
+        #     is_long=False
+        # )
 
 
     def run_ds_factor(self, factor_df, factor_name):

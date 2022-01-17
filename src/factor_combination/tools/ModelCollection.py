@@ -26,10 +26,10 @@ import xgboost as xgb
 import lightgbm as lgb
 
 # eval 
-from scipy.stats import t, rankdata
-import statsmodels.api as sm #最小二乘
-from statsmodels.formula.api import ols #加载ols模型
-from sklearn.metrics import mean_squared_error, r2_score
+# from scipy.stats import t, rankdata
+# import statsmodels.api as sm #最小二乘
+# from statsmodels.formula.api import ols #加载ols模型
+# from sklearn.metrics import mean_squared_error, r2_score
 import matplotlib.pyplot as plt
 
 # load files 
@@ -40,7 +40,8 @@ from src.factor_combination.tools.Evaluation import (
 )
 
 # data source 
-from src.data_ingestion.PqiDataSdk_Offline import PqiDataSdkOffline
+
+# TODO: less copy 
 
 '''
 ————————————————— Linear Model —————————————————
@@ -1479,9 +1480,9 @@ class LgbModel:
             dtype='float'
         )
 
-        self.fig_save_path = cfg.fig_path + 'lgb_fig_{}/'.format(self.number)
-        if not os.path.isdir(self.fig_save_path):
-            os.mkdir(self.fig_save_path)
+        # self.fig_save_path = cfg.fig_path + 'lgb_fig_{}/'.format(self.number)
+        # if not os.path.isdir(self.fig_save_path):
+        #     os.mkdir(self.fig_save_path)
 
         # 记录模型训练的各种信息
         # others = '' # 备注
@@ -1541,7 +1542,7 @@ class LgbModel:
             print(f'Train X Shape:{train_X.shape}')
 
             # parepare to be saved s
-            pred_test_Y = test_Y.copy(deep=True)
+            # pred_test_Y = test_Y.copy(deep=True)
 
             # sample weights
             weights = self.DataTools.weights_cal(train_Y, self.weight_method)
@@ -1625,10 +1626,10 @@ class LgbModel:
             #         verbose=False
             #     )
             # else:
-            LgbTree.fit(train_X, train_Y, sample_weight=weights)
+            LgbTree.fit(train_X.values, train_Y.values, sample_weight=weights)
 
             # save model
-            self.model['train{}_{}'.format(train_date_list[0], train_date_list[-1])] = copy.deepcopy(LgbTree)
+            self.model['train{}_{}'.format(train_date_list[0], train_date_list[-1])] = LgbTree # copy.deepcopy(LgbTree)
 
             # save feature importance
             if self.whether_importance:
@@ -1664,7 +1665,8 @@ class LgbModel:
                     pred_test_class_y = LgbTree.predict(test_X)
                 else:
                     pred_test_y = LgbTree.predict(test_X)
-                pred_test_Y.iloc[:] = pred_test_y
+                pred_test_Y = pd.Series(pred_test_y, index=test_Y.index)
+                # pred_test_Y.iloc[:] = pred_test_y
                 self.total_test_period_df[test_date_list[cfg.lag_date - 1:]] = pred_test_Y.unstack()
                 self.total_pred_test_y.append(pred_test_y)
 
@@ -1673,17 +1675,17 @@ class LgbModel:
             idx = ~(np.isnan(test_y) | np.isinf(test_y) | np.isnan(pred_test_y) | np.isinf(pred_test_y))
 
             # 临时绘图
-            if cfg.lgb_rolling_feature_selection:
-                raise NotImplementedError('LGBM Para Search Terminated')
-                pred_train_y = LgbTree.predict(train_X_new)
-            else:
-                pred_train_y = LgbTree.predict(train_X)
-            train_y = train_Y.values
-            print("====Explanatory Power====")
-            self.plot_eps_fig(predy=pred_test_y[idx], testy=test_y[idx], date=train_date_list[-1], type='outsample')
-            self.plot_eps_fig(predy=pred_train_y, testy=train_y, date=train_date_list[-1], type='insample')
-            self.plot_rank_fig(predy=pred_test_Y.unstack(), testy=test_Y.unstack(), date=train_date_list[-1],
-                               type='outsample')
+            # if cfg.lgb_rolling_feature_selection:
+            #     raise NotImplementedError('LGBM Para Search Terminated')
+            #     pred_train_y = LgbTree.predict(train_X_new)
+            # else:
+            #     pred_train_y = LgbTree.predict(train_X)
+            # train_y = train_Y.values
+            # print("====Explanatory Power====")
+            # self.plot_eps_fig(predy=pred_test_y[idx], testy=test_y[idx], date=train_date_list[-1], type='outsample')
+            # self.plot_eps_fig(predy=pred_train_y, testy=train_y, date=train_date_list[-1], type='insample')
+            # self.plot_rank_fig(predy=pred_test_Y.unstack(), testy=test_Y.unstack(), date=train_date_list[-1],
+            #                    type='outsample')
 
             print("====Evaluation Stats====")
             if 'Regress' in self.type:

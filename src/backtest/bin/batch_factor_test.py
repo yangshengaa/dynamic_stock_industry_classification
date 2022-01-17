@@ -128,7 +128,7 @@ class BasicBatchTest:
         factor_dict = {}
         for factor_name in test_factor_list:
             factor_df = self.myconnector.read_eod_feature(
-                factor_name, dates=self.trade_dates
+                factor_name, dates=self.trade_dates, des=self.factor_path.split('/')[-1]
             )
 
             # dynamic stock pool (change stock pool as the index member stocks changes)
