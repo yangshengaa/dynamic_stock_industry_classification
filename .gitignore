@@ -8,6 +8,9 @@ out/res
 out/signal_df
 out/model*
 out/log/
+out/return/
+out/risk_fig/
+out/cov
 
 # test_space 
 test_space*

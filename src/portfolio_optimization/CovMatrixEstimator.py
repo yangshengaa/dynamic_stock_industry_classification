@@ -60,9 +60,9 @@ class CovMatrixEstimator:
 
         # data 
         self.myconnector = PqiDataSdkOffline()
-        all_stocks = self.myconnector.get_ticker_list()
+        self.all_stocks = self.myconnector.get_ticker_list()
         self.eod_data_dict = self.myconnector.get_eod_history(
-            tickers=all_stocks, 
+            tickers=self.all_stocks, 
             start_date=self.start_date,
             end_date=self.end_date,
             fields=['FloatMarketValue']
@@ -162,7 +162,37 @@ class CovMatrixEstimator:
         # self.ind_df = self.ind_df.fillna(0)
         # # ind_name_list = ind_df.columns
         # self.ind_df.columns = ["ind_" + str(i + 1) for i in range(len(self.ind_df.columns))]
-        
+        self.index_code_to_name = {
+            '801010': '农林牧渔',
+            '801020': '采掘',
+            '801030': '化工',
+            '801040': '钢铁',
+            '801050': '有色金属',
+            '801080': '电子',
+            '801110': '家用电器',
+            '801120': '食品饮料',
+            '801130': '纺织服装',
+            '801140': '轻工制造',
+            '801150': '医药生物',
+            '801160': '公用事业',
+            '801170': '交通运输',
+            '801180': '房地产',
+            '801200': '商业贸易',
+            '801210': '休闲服务',
+            '801230': '综合',
+            '801710': '建筑材料',
+            '801720': '建筑装饰',
+            '801730': '电气设备',
+            '801740': '国防军工',
+            '801750': '计算机',
+            '801760': '传媒',
+            '801770': '通信',
+            '801780': '银行',
+            '801790': '非银金融',
+            '801880': '汽车',
+            '801890': '机械设备'
+        }
+
         ind_members = self.myconnector.get_sw_members().drop_duplicates(subset=['con_code'])[["index_code", "con_code"]]
         self.ind_df = pd.DataFrame(
             index=self.all_stocks, columns=list(set(ind_members["index_code"]
@@ -338,7 +368,7 @@ class CovMatrixEstimator:
 
         # TODO: 打包进子进程开多进程蒙特卡洛
         # 将每一期raw估计的协方差矩阵放入子进程蒙特卡洛
-        pool = mp.Pool(processes=200)
+        pool = mp.Pool(processes=8)
         process_list = []
         for current_t in dates:
             process_list.append(pool.apply_async(
@@ -398,7 +428,7 @@ class CovMatrixEstimator:
         date_list_bs = list(temp_idio_var.keys())
 
         # 读取收益率
-        pool = mp.Pool(processes=200)
+        pool = mp.Pool(processes=8)
         process_list = []
         for current_t in date_list_bs:
             today_size, today_idio_var = size[current_t], temp_idio_var[current_t]
@@ -517,14 +547,19 @@ class CovMatrixEstimator:
             today_size = self.eod_data_dict['FloatMarketValue'][date][sig_ts.columns]
             all_df = pd.concat([np.log(sig_ts).T, X_ts, today_size], axis=1).dropna(axis = 0)
             data = all_df.values.T
+            # TODO: handle zero size array
             data_x, data_y, data_weight = data[1:-1].T, data[0], data[-1]
-            model = sm.WLS(data_y, data_x, weights=data_weight)
-            res = model.fit()
+            if len(data_y) > 0:
+                model = sm.WLS(data_y, data_x, weights=data_weight)
+                res = model.fit()
+                params = res.params
+            else:
+                params = np.array([np.nan] * (data.shape[0] - 2))
 
             # 对gamma<1的股票，做结构化调整
             adjust_stock = today_original_idio_var[gamma[(gamma < 1)[date]].index].columns
             X_adjust = X.T[adjust_stock].T
-            sig_str = self.E0 * np.exp(X_adjust @ res.params)
+            sig_str = self.E0 * np.exp(X_adjust @ params)
             sigma_adjust = (1 - gamma[date][adjust_stock]) * sig_str + gamma[date][adjust_stock] * np.sqrt(today_original_idio_var[adjust_stock])
 
             today_original_idio_var[adjust_stock] = (sigma_adjust * sigma_adjust)
@@ -586,8 +621,8 @@ class CovMatrixEstimator:
             if not os.path.isdir(self.cov_save_path):
                 os.mkdir(self.cov_save_path)
 
-            factor_cov_file_name = self.cov_save_path + 'factor_cov_est_{}'.format(return_type)
-            idio_var_file_name = self.cov_save_path + 'idio_var_est_{}'.format(return_type)
+            factor_cov_file_name = os.path.join(self.cov_save_path, 'factor_cov_est_{}'.format(return_type))
+            idio_var_file_name = os.path.join(self.cov_save_path, 'idio_var_est_{}'.format(return_type))
 
             if cfg.N_W:
                 factor_cov_file_name = factor_cov_file_name + '_NW{}_{}'.format(self.pred_period, cfg.D)

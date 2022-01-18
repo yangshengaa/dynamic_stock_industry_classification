@@ -50,9 +50,9 @@ class FactorReturnGenerator(object):
         #     str_map=False
         # )
         self.myconnector = PqiDataSdkOffline()
-        all_stocks = self.myconnector.get_ticker_list()
+        self.all_stocks = self.myconnector.get_ticker_list()
         self.eod_data_dict = self.myconnector.get_eod_history(
-            tickers=all_stocks, 
+            tickers=self.all_stocks, 
             start_date=self.start_date, 
             end_date=self.end_date
         )
@@ -151,7 +151,37 @@ class FactorReturnGenerator(object):
         # self.ind_df = self.ind_df.fillna(0)
         # # ind_name_list = ind_df.columns
         # self.ind_df.columns = ["ind_" + str(i + 1) for i in range(len(self.ind_df.columns))]
-        
+        self.index_code_to_name = {
+            '801010': '农林牧渔',
+            '801020': '采掘',
+            '801030': '化工',
+            '801040': '钢铁',
+            '801050': '有色金属',
+            '801080': '电子',
+            '801110': '家用电器',
+            '801120': '食品饮料',
+            '801130': '纺织服装',
+            '801140': '轻工制造',
+            '801150': '医药生物',
+            '801160': '公用事业',
+            '801170': '交通运输',
+            '801180': '房地产',
+            '801200': '商业贸易',
+            '801210': '休闲服务',
+            '801230': '综合',
+            '801710': '建筑材料',
+            '801720': '建筑装饰',
+            '801730': '电气设备',
+            '801740': '国防军工',
+            '801750': '计算机',
+            '801760': '传媒',
+            '801770': '通信',
+            '801780': '银行',
+            '801790': '非银金融',
+            '801880': '汽车',
+            '801890': '机械设备'
+        }
+
         ind_members = self.myconnector.get_sw_members().drop_duplicates(subset=['con_code'])[["index_code", "con_code"]]
         self.ind_df = pd.DataFrame(
             index=self.all_stocks, columns=list(set(ind_members["index_code"]
@@ -255,6 +285,12 @@ class FactorReturnGenerator(object):
         ticker_total_lst = []  # 存放非nan的ticker
         X = self.ind_df.copy()  # 外层copy一次，循环内自己换factor_name
         for t in range(len(self.date_list) - shift_step):
+
+            # fix c2next_c first day empty: 
+            if t == 0:
+                continue
+            
+            # prepare data
             Y = ret_df.iloc[:, t + shift_step]
             #dt = fac.columns.tolist()[t+shift_step]
             for class_name in self.class_factor_dict_adj.keys():
@@ -263,6 +299,7 @@ class FactorReturnGenerator(object):
             all_df = pd.concat([Y, X, today_size], axis=1).dropna(axis = 0)
             ticker_lst = all_df.index
             data = all_df.values.T
+            # print(data.shape)
             
             if len(data[0]) > 0:  # 目前必须当日要有数据，否则后面设置index的时候会报错
                 # ind risk 回归  
@@ -275,6 +312,10 @@ class FactorReturnGenerator(object):
                 residual = data_y - data_x.dot(res.params)
                 f_2.append(residual)  # 特质收益率
                 ticker_total_lst.append(ticker_lst) # 当日有值的ticker
+            
+            else: # otherwise fillna 
+                f_1.append(np.array([np.nan] * (data.shape[0] - 2)))
+                # f_2.append(np.array([np.nan] * data.shape[1]))
         
         # 拼接因子收益率
         fac_name_list = list(self.ind_df.columns) + list(self.class_factor_dict_adj.keys())

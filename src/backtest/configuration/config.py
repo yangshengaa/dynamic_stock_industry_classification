@@ -42,13 +42,13 @@ factor_path = 'data/features/factor'  # for alpha factors
 # factor_path += '/cokurt_40_zz1000_fmv_100_1'
 
 # ml factor path 
-# factor_path = 'data/features/ml_factor' 
+factor_path = 'data/features/ml_factor' 
 
 '''
 ============ BackTest Config =============
 '''
 # TODO: to English
-start_date = '20200101'
+start_date = '20170101'
 end_date = '20211231'
 adj_freq = 1  # 调仓周期
 freq = "D"  # 调仓模式，W为按周，D为按日
