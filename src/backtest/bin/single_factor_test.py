@@ -163,13 +163,13 @@ class SingleFactorBacktest:
         self.long_signal_df_paths = long_signal_df_paths  # save to self, facilitate plotting
 
         # short holdings
-        short_signal_df_paths = []
-        for idx, short_signal_df in enumerate(short_batch_signal_df_list):
-            short_signal_df_path = save_path + '/' + 'short' + '_' + str(idx) # + '.csv'
-            # short_signal_df.astype(int).to_csv(short_signal_df_path)
-            short_signal_df.astype(int).reset_index().to_feather(short_signal_df_path)
-            short_signal_df_paths.append(short_signal_df_path)
-        self.short_signal_df_paths = short_signal_df_paths  # save to self，facilitate plotting
+        # short_signal_df_paths = []
+        # for idx, short_signal_df in enumerate(short_batch_signal_df_list):
+        #     short_signal_df_path = save_path + '/' + 'short' + '_' + str(idx) # + '.csv'
+        #     # short_signal_df.astype(int).to_csv(short_signal_df_path)
+        #     short_signal_df.astype(int).reset_index().to_feather(short_signal_df_path)
+        #     short_signal_df_paths.append(short_signal_df_path)
+        # self.short_signal_df_paths = short_signal_df_paths  # save to self，facilitate plotting
 
     
     def signal_riskplot(self):

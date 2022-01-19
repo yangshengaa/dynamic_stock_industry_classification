@@ -18,7 +18,7 @@ fig_save_path = 'out/risk_fig/'
 ml_factor_path = 'data/features/ml_factors' # predicted return path
 index_member_stock_path = 'data/parsed/index_stock_weight'
 
-start_date = '20150101'
+start_date = '20210801'
 end_date = '20211231'
 
 return_type_list =  ['c2next_c'] # ['o2next_o', 'c2next_o', 'o2c', 'c2next_c']
@@ -73,19 +73,21 @@ lam_vol = 0.5 ** (1/tau_vol)   # 波动率偏误调整 EWMA权重
 
 # —————— portfolio optimization ——————
 # TODO: use a different signal and ml factor
-input_signal_df_name = 'xgb_agg.csv'  # 输入信号名字，信号格式为0/1 
+# input_signal_df_name = 'xgb_agg.csv'  # 输入信号名字，信号格式为0/1 
+input_signal_df_name = 'lgb_161227_211231_240_40_202201170028_Regressor_zz1000_fmv_100_1/long_0'
 obj_func = 'ret_var' # 目标函数：min_var (最小方差)/ ret_var (均值-方差优化)
 
 weight_low = 0.001   # 权重下限
 weight_high = 0.05  # 权重上限
 
-ml_factor_name = 'xgb_161227_201231_240_40_202109090912_Regressor'
+# ml_factor_name = 'xgb_161227_201231_240_40_202109090912_Regressor'
+ml_factor_name = 'lgb_161227_211231_240_40_202201170028_Regressor'
 
 benchmark_index = 'zz1000'  # 风格行业中性约束的基准指数
 
 style_neutralize = True  # 风格中性约束
-style_low_limit = -0.3  # 风格中性因子敞口  # TODO: 放0.5以内
-style_high_limit = 0.3
+style_low_limit = -0.4  # 风格中性因子敞口  # TODO: 放0.5以内
+style_high_limit = 0.4
 
 ind_neutralize = True  # 行业中性约束
 ind_low_limit = -0.1 # 行业中性因子敞口
@@ -99,7 +101,7 @@ penalty_theta = 0.1  # 换仓惩罚  # 仅在method 2 中使用 # 如果用的�
 penalty_nu = 100     # 风格暴露惩罚  # 仅在method 3 中使用
 penalty_xi = 1       # 模型错位风险惩罚  # 仅在method 4 中使用
 
-qp_method = 4  # 目标函数和限制方法
+qp_method = 1  # 目标函数和限制方法
 
 adj_method = '_NW1_4_Eigen_struc_240_bs_vol60_20'  # 读取对应调整方法的协方差矩阵 '_NW3', '_Eigen_bs_vol', 目前均使用'_NW1_4_Eigen_bs_vol60_20'
 
@@ -121,3 +123,38 @@ test_name = 'struc_adjust_test' # 输出文件夹名字
 
 # —————— assert ——————
 assert penalty_lambda > 1e-6 
+
+
+# ------ others ------
+
+# industry code to name 
+index_code_to_name = {
+    '801010': '农林牧渔',
+    '801020': '采掘',
+    '801030': '化工',
+    '801040': '钢铁',
+    '801050': '有色金属',
+    '801080': '电子',
+    '801110': '家用电器',
+    '801120': '食品饮料',
+    '801130': '纺织服装',
+    '801140': '轻工制造',
+    '801150': '医药生物',
+    '801160': '公用事业',
+    '801170': '交通运输',
+    '801180': '房地产',
+    '801200': '商业贸易',
+    '801210': '休闲服务',
+    '801230': '综合',
+    '801710': '建筑材料',
+    '801720': '建筑装饰',
+    '801730': '电气设备',
+    '801740': '国防军工',
+    '801750': '计算机',
+    '801760': '传媒',
+    '801770': '通信',
+    '801780': '银行',
+    '801790': '非银金融',
+    '801880': '汽车',
+    '801890': '机械设备'
+}

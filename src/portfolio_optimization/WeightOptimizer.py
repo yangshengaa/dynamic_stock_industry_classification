@@ -4,16 +4,15 @@
 # load packages 
 import os
 import time
-import datetime
+import traceback
 import logging
-import warnings
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
 from sklearn import linear_model
-import scipy
 import pickle
+
 import cvxopt
 from cvxopt import matrix, solvers
 solvers.options['show_progress'] = False
@@ -47,13 +46,17 @@ class WeightOptimizer():
         #     str_map=False
         # )
         self.myconnector = PqiDataSdkOffline()
-        all_stocks = self.myconnector.get_ticker_list()
+        self.all_stocks = self.myconnector.get_ticker_list()
         self.eod_data_dict = self.myconnector.get_eod_history(
-            tickers=all_stocks, 
+            tickers=self.all_stocks, 
             start_date=self.start_date,
             end_date=self.end_date
         )
         self.return_type_list = cfg.return_type_list
+        self.trade_dates = self.myconnector.select_trade_dates(
+            start_date=self.start_date, 
+            end_date=self.end_date
+        )
         
         # self.ret_df_dict = {}
         # self.Open = self.eod_data_dict["OpenPrice"] * self.eod_data_dict["AdjFactor"]
@@ -75,6 +78,7 @@ class WeightOptimizer():
 
         self.tickers = list(self.eod_data_dict["ClosePrice"].index)  
         self.date_list = list(self.eod_data_dict['ClosePrice'].columns)
+        self.index_code_to_name = cfg.index_code_to_name
 
         self.sigma_holding_dict = {}
         self.holding_stock_list_dict = {}
@@ -99,8 +103,8 @@ class WeightOptimizer():
 
     def read_cov_data(self, return_type):
         """ 读取因子和特质收益率协方差矩阵 """
-        factor_cov_file_name = self.cov_save_path + 'factor_cov_est_{}{}'.format(return_type,cfg.adj_method)
-        idio_var_file_name = self.cov_save_path + 'idio_var_est_{}{}'.format(return_type,cfg.adj_method)
+        factor_cov_file_name = os.path.join(self.cov_save_path, 'factor_cov_est_{}{}'.format(return_type,cfg.adj_method))
+        idio_var_file_name = os.path.join(self.cov_save_path, 'idio_var_est_{}{}'.format(return_type,cfg.adj_method))
 
     
         f1 = open(factor_cov_file_name + '.pkl','rb')
@@ -120,7 +124,8 @@ class WeightOptimizer():
 
 
     def load_signal_data(self):
-        self.input_signal = pd.read_csv(cfg.input_signal_path + cfg.input_signal_df_name, index_col = 0)
+        # self.input_signal = pd.read_csv(cfg.input_signal_path + cfg.input_signal_df_name, index_col = 0)
+        self.input_signal = pd.read_feather(os.path.join(cfg.input_signal_path, cfg.input_signal_df_name)).set_index('index')
 
 
     def read_factor_data(self,feature_name, tickers, date_list):
@@ -322,7 +327,7 @@ class WeightOptimizer():
 
 
 
-    def qp_method_1(self, date, Sigma_holding_stock, opt_signal):
+    def qp_method_1(self, date, Sigma_holding_stock, prev_holdings):
         num_holding = Sigma_holding_stock.shape[0]
         holding_stock_list = self.holding_stock_list_dict[date]
 
@@ -333,8 +338,7 @@ class WeightOptimizer():
         style_high_limit = self.all_style_high_limit   
         ind_low_limit = self.all_ind_low_limit
         ind_high_limit = self.all_ind_high_limit
-        previous_day_signal = opt_signal.shift(1, axis = 1).fillna(0)[date][holding_stock_list].values
-
+        # previous_day_signal = opt_signal.shift(1, axis = 1).fillna(0)[date][holding_stock_list].values
         
         status = False
         while not status:
@@ -402,7 +406,7 @@ class WeightOptimizer():
             if cfg.turnover_constraint:
                 
 
-                previous_day_signal = opt_signal.shift(1, axis = 1).fillna(0)[date][holding_stock_list].values
+                previous_day_signal = prev_holdings # opt_signal.shift(1, axis = 1).fillna(0)[date][holding_stock_list].values
                 fixed_turnover = 1 - previous_day_signal.sum()
 
 
@@ -424,6 +428,7 @@ class WeightOptimizer():
                 solution = np.array(sol['x'])
                 status = 'optimal' in sol['status']
             except:
+                traceback_msg = traceback.format_exc()
                 status = False
 
             if not status:
@@ -437,8 +442,11 @@ class WeightOptimizer():
                         if turnover_limit >= 2.0 :
                             # 所有约束失败
                             status = True
-                            print(date)
-                            print('fail to constraint')
+                            # print(date)
+                            logging.warning(f'{date}: fail to constraint, return naive equal weight instead')
+                            weight = np.ones(num_holding) / num_holding
+                            return weight
+                            
                         else:
                             style_low_limit = self.all_style_low_limit
                             style_high_limit = self.all_style_high_limit
@@ -457,7 +465,6 @@ class WeightOptimizer():
                 else:
                     style_low_limit = style_low_limit - 0.1
                     style_high_limit = style_high_limit + 0.1
-
 
         weight = np.array([w[0] for w in solution])[:num_holding]
 
@@ -878,15 +885,39 @@ class WeightOptimizer():
         else:
             raise NotImplementedError
 
+        # TODO: simplify codes
+
+        # set up template to record previous holdings 
+        template_series = pd.Series(0, index=self.tickers)
+        prev_holdings = template_series.copy()
+
+        # print dates 
+        prev_year_date = self.date_list_opt[0][:6]
+        start = time.time()
+
         # 开始循环
         for date in self.date_list_opt:
-            # print(date)
+            # extract today data
             Sigma_holding_stock = sigma_holding[date]
+            today_holdings = self.holding_stock_list_dict[date]
+            prev_holdings_today = prev_holdings[today_holdings].fillna(0)
+            weight = qp_method_func(date, Sigma_holding_stock, prev_holdings_today.values)
 
-            weight = qp_method_func(date, Sigma_holding_stock, opt_signal)
+            # append to weight
+            opt_signal[date][today_holdings] = weight
 
-            opt_signal[date][self.holding_stock_list_dict[date]] = weight
+            # update prev_holdings
+            prev_holdings = pd.Series(weight, index=today_holdings)
+            prev_holdings = prev_holdings + template_series
 
+            # print by month
+            cur_year_date = date[:6]
+            if cur_year_date != prev_year_date:
+                # log 
+                print(f'{prev_year_date} takes {time.time() - start:.2f} s')
+                # renew 
+                prev_year_date = cur_year_date
+                start = time.time() 
         self.opt_signal_dict[return_type] = opt_signal
 
 
@@ -900,14 +931,14 @@ class WeightOptimizer():
             if not os.path.isdir(output_signal_path):
                 os.mkdir(output_signal_path)
 
-            file_name = '{}/opt_weight_{}_{}_{}_{}_{}{}'.format(
+            file_name = '{}/{}{}{}_{}_{}_{}'.format(
                 output_signal_path,
+                cfg.input_signal_df_name,  
+                cfg.adj_method,
                 cfg.weight_low, 
                 cfg.weight_high, 
                 return_type,
                 self.obj_func, 
-                cfg.input_signal_df_name[:-4], 
-                cfg.adj_method
             )
             if 'ret_var' in self.obj_func:
                 file_name = file_name + f'_penalty{self.penalty_lambda}'
@@ -941,8 +972,11 @@ class WeightOptimizer():
                     cfg.turnover_constraint * f'_turnover{cfg.turnover_limit}'
                 )
 
-            self.opt_signal_dict[return_type].to_csv(file_name + '.csv')
-                
+            # self.opt_signal_dict[return_type].to_csv(file_name + '.csv')
+            # self.myconnector.save_eod_feature(
+            #     file_name, self.opt_signal_dict[return_type],
+            # )
+            self.opt_signal_dict[return_type].reset_index().to_feather(file_name)
             print(file_name)
 
             # TODO: 输出文件名太长了，是否输出编号，然后自己记录参数？

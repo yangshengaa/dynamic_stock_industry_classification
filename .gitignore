@@ -11,6 +11,7 @@ out/log/
 out/return/
 out/risk_fig/
 out/cov
+out/graph_fig
 
 # test_space 
 test_space*
@@ -53,8 +54,10 @@ src/factor_combination/bins/ParaSearch.py
 src/portfolio_optimization/PlotRisk.py
 src/portfolio_optimization/FactorSignificanceTest.py
 
-# to be added soon 
-src/graph_cluster/*
+# graph_cluster
+src/graph_cluster/sub2vec
+src/graph_cluster/subgnn
+
 
 
 # python files 

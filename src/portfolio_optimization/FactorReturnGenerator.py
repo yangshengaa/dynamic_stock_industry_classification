@@ -62,6 +62,7 @@ class FactorReturnGenerator(object):
         )
         self.tickers = list(self.eod_data_dict["ClosePrice"].index)  
         self.date_list = list(self.eod_data_dict['ClosePrice'].columns)
+        self.index_code_to_name = cfg.index_code_to_name
         
         # 收益率回看模式
         self.ret_df_dict = {}    
@@ -151,36 +152,6 @@ class FactorReturnGenerator(object):
         # self.ind_df = self.ind_df.fillna(0)
         # # ind_name_list = ind_df.columns
         # self.ind_df.columns = ["ind_" + str(i + 1) for i in range(len(self.ind_df.columns))]
-        self.index_code_to_name = {
-            '801010': '农林牧渔',
-            '801020': '采掘',
-            '801030': '化工',
-            '801040': '钢铁',
-            '801050': '有色金属',
-            '801080': '电子',
-            '801110': '家用电器',
-            '801120': '食品饮料',
-            '801130': '纺织服装',
-            '801140': '轻工制造',
-            '801150': '医药生物',
-            '801160': '公用事业',
-            '801170': '交通运输',
-            '801180': '房地产',
-            '801200': '商业贸易',
-            '801210': '休闲服务',
-            '801230': '综合',
-            '801710': '建筑材料',
-            '801720': '建筑装饰',
-            '801730': '电气设备',
-            '801740': '国防军工',
-            '801750': '计算机',
-            '801760': '传媒',
-            '801770': '通信',
-            '801780': '银行',
-            '801790': '非银金融',
-            '801880': '汽车',
-            '801890': '机械设备'
-        }
 
         ind_members = self.myconnector.get_sw_members().drop_duplicates(subset=['con_code'])[["index_code", "con_code"]]
         self.ind_df = pd.DataFrame(
