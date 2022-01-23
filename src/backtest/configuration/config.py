@@ -14,7 +14,7 @@ from src.data_ingestion.PqiDataSdk_Offline import PqiDataSdkOffline
 user = getpass.getuser()
 
 # name output folder 
-test_name = 'ml'
+test_name = 'debug'
 
 '''
 ======= BackTest System Config ========
@@ -38,11 +38,11 @@ risk_fac_data_path = 'data/features/risk_factor'              # barra risk facto
 factor_path = 'data/features/factor'  # for alpha factors
 
 # signal factor read path 
-# factor_path = 'out/signal_df'           # for holding signals test
-# factor_path += '/cokurt_40_zz1000_fmv_100_1'
+factor_path = 'out/signal_df'           # for holding signals test
+factor_path += '/lgb_161227_211231_240_40_202201170028_Regressor_zz1000_fmv_100_1'
 
 # ml factor path 
-factor_path = 'data/features/ml_factor' 
+# factor_path = 'data/features/ml_factor' 
 
 '''
 ============ BackTest Config =============

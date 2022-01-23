@@ -334,15 +334,22 @@ class DataTools:
 
     def get_previous_N_tradedate(self, date, N=1):
         """
-        get n trade dates before the current date 
-        :param date: has to be a trade date
+        get trade days N days ago 
+        :param date: must be a trade date
         :param N:
         :return:
         """
-        try:
-            pre_date = str(self.calendar[np.maximum(self.calendar.index(int(date)) - N, 0)])
-        except:
-            pre_date = date
+        # find index
+        cur_date_idx = np.where(self.calendar == int(date))[0]
+        # if not in the current calendar, the solution is imperfect: just return itself.
+        if len(cur_date_idx) == 0:
+            return date
+
+        prev_date_idx = cur_date_idx[0] - N
+        # put in range
+        prev_date_idx_aligned = max(0, min(len(self.calendar) - 1, prev_date_idx))
+        # select date
+        pre_date = str(self.calendar[prev_date_idx_aligned])
         return pre_date
 
     def get_status(self, up_down):
@@ -377,7 +384,7 @@ class DataTools:
     def get_up_down_limit(self):
         """
         一字涨跌停的flag，涨停为1，跌停为-1，其余为0
-        注意：没有上市的股票也被fill成了0，因此对股票是否上市交易没有判断作用
+        注意: 没有上市的股票也被fill成了0，因此对股票是否上市交易没有判断作用
         """
         limit_df = 1 * (self.eod_data_dict["ClosePrice"] == self.eod_data_dict["OpenPrice"]) * (
                 self.eod_data_dict["ClosePrice"] == self.eod_data_dict["HighestPrice"]) * (

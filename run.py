@@ -169,7 +169,20 @@ def main(targets):
         run_risk_factor_gen()
     
     else:
-        raise NotImplementedError('Target not Found / Module not Defined')
+        raise NotImplementedError(
+            'Target not Found / Module not Defined. Please pick from the following modes: \n' + 
+            '\t{}\n\t{}\n\t{}\n\t{}\n\t{}\n\t{}\n\t{}\n\t{}\n\t{}\n'.format(
+                'gen',
+                'backtest_factor',
+                'backtest_signal',
+                'comb',
+                'opt_cov_est',
+                'opt_fac_ret',
+                'opt_weight',
+                'pairs',
+                'gen_risk'
+            )
+        )
 
 if __name__ == '__main__':
     targets = sys.argv[1:]

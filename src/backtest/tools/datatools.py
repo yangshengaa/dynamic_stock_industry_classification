@@ -5,6 +5,7 @@
 # load packages 
 import os
 import sys
+import traceback
 import numpy as np
 import pandas as pd
 
@@ -212,8 +213,9 @@ class DataAssist:
         self.get_index_ret(weight=self.weight_by_fmv)
 
         ## 删除lookbackh和lookforward的部分
-        if not self.offline:
-            self.change_data_range()
+        # # ! Update: ignore lookback and lookforward
+        # if not self.offline:
+        #     self.change_data_range()
 
     # TODO: 更改获取上市股票
     def get_issued_stock_df(self):
@@ -228,10 +230,8 @@ class DataAssist:
                                        index=self.eod_data_dict['ClosePrice'].index,
                                        columns=self.eod_data_dict['ClosePrice'].columns).T
         for ticker in self.stock_pool:
-            if type(self.get_previous_N_tradedate(issue_date_dict[ticker], -60)) == float:
-                issue_status_df[ticker].loc[:] = np.nan
-            else:
-                issue_status_df[ticker].loc[:self.get_previous_N_tradedate(issue_date_dict[ticker], -60)] = np.nan
+            # ! the following is a very dangerous operation. Revise later
+            issue_status_df[ticker].loc[:self.get_previous_N_tradedate(issue_date_dict[ticker], -60)] = np.nan
         return issue_status_df.T
 
     def get_valid_df(self):
@@ -281,18 +281,24 @@ class DataAssist:
         return suspend_df
 
 
-    # TODO: inefficient 
     def get_previous_N_tradedate(self, date, N=1):
         """
-        获取date前面n个交易日
-        :param date: 必须是交易日
+        get trade days N days ago 
+        :param date: must be a trade date
         :param N:
         :return:
         """
-        try:
-            pre_date = str(self.calendar[np.maximum(self.calendar.index(int(date)) - N, 0)])
-        except:
-            pre_date = date
+        # find index
+        cur_date_idx = np.where(self.calendar == int(date))[0]
+        # if not in the current calendar, the solution is imperfect: just return itself.
+        if len(cur_date_idx) == 0:
+            return date
+        
+        prev_date_idx = cur_date_idx[0] - N 
+        # put in range
+        prev_date_idx_aligned = max(0, min(len(self.calendar) - 1, prev_date_idx)) 
+        # select date
+        pre_date = str(self.calendar[prev_date_idx_aligned])
         return pre_date
 
     # TODO: 
