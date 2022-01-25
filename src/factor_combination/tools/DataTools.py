@@ -5,18 +5,21 @@ Datatools for factor combination module
 # load packages
 import os
 import sys
-import copy
+# import copy
+import time
 
 import numpy as np
 import pandas as pd
+import multiprocessing as mp
+from functools import partial
 import matplotlib.pyplot as plt
 from typing import Dict, List
 
 from scipy.stats import rankdata
-from sklearn import decomposition
+# from sklearn import decomposition
 
 # load files 
-from src.data_ingestion.PqiDataSdk_Offline import PqiDataSdkOffline
+# from src.data_ingestion.PqiDataSdk_Offline import PqiDataSdkOffline
 from src.factor_combination.configuration import config as cfg
 # from PqiDataSdk import *
 
@@ -57,6 +60,7 @@ class DataTools:
         
         # others 
         self.date_list = self.get_trade_days()
+        self.calendar = np.array(sorted([int(x) for x in self.myconnector.select_trade_dates(start_date='20010101', end_date='21000101')]))
 
         # stock eod data 
         self.eod_data_dict = self.myconnector.get_eod_history(
@@ -66,31 +70,19 @@ class DataTools:
         )
         self.return_data = self.get_return_data()
 
-        # get factors
-        self.factor_dict = self.get_eod_feature(tickers=self.stock_pool, date_list=self.date_list)
+        # get factors  # ! delay reading ! 
+        # self.factor_dict = self.get_eod_feature(tickers=self.stock_pool, date_list=self.date_list)
         # self.ind_df = self.get_sw_ind_df()
         # for k in self.eod_data_dict.keys():
         #     self.eod_data_dict[k].columns = [str(x) for x in self.eod_data_dict[k].columns]
         # self.eod_data_dict["ind_df"] = self.ind_df
 
+        # specify feature names
         self.lag_date = cfg.lag_date
         df_columns = []
-        # if not cfg.gene_fac_only:
         for feature in self.features:
             for date in range(self.lag_date):
                 df_columns.append(feature + "_" + str(date))
-        # else:
-        #     try:
-        #         assert cfg.gene_fac_flag
-        #     except AssertionError:
-        #         print("Gene flag Conflict")
-            # genetic algorithms 
-
-        # if cfg.gene_fac_flag:
-        #     print("Gennetic Factors are added and fac path is {}".format(cfg.gene_fac_dirs))
-        #     for feature in self.gene_features:
-        #         for date in range(self.lag_date):
-        #             df_columns.append(feature + "_" + str(date))
         self.features = df_columns
 
     '''
@@ -425,29 +417,93 @@ class DataTools:
     ———————————————————————— prepare X and y in ML ————————————————————————————
     '''
 
+    def prepare_data_subprocess(self, feature, date_list):
+        feature_df = self.myconnector.read_eod_feature(
+            feature, dates=date_list
+        )
+        feature_df = feature_df = feature_df * 0 # remove inf 
+        feature_df_stack = feature_df.stack(dropna=False).values
+        return feature_df_stack
+
     def prepare_data(self, train_date_list, test_date_list):
         """
         convert factor dict to a 2d dataframe to get train and test X 
         dfs will be doubly indexed by tickers and date
         """
         # train test split 
+        # self.train_data = pd.DataFrame(
+        #     index=self.return_data[train_date_list[self.lag_date - 1:]].stack(dropna=False).index,
+        #     columns=self.features + ['label'], 
+        #     dtype='float'
+        # )
+        # self.test_data = pd.DataFrame(
+        #     index=self.return_data[test_date_list[self.lag_date - 1:]].stack(dropna=False).index,
+        #     columns=self.features + ['label'], 
+        #     dtype='float'
+        # )
+
+        # read and populate 
+        train_data_np = []
+        train_res_list = [] 
+        test_data_np = []
+        test_res_list = []
+        # pool = mp.Pool()
+        for feature in self.features:
+            # feature info
+            feature_name = feature[:-2]  # remove lag info
+            lag = int(feature[-1])       # extract lag info
+            # self.train_data[feature] = self.factor_dict[feature_name][train_date_list[self.lag_date - 1 - lag:len(train_date_list) - lag]].stack(dropna=False).values
+            # self.test_data[feature] = self.factor_dict[feature_name][test_date_list[self.lag_date - 1 - lag:len(test_date_list) - lag]].stack(dropna=False).values
+            
+            # train_date_list_selected = train_date_list[self.lag_date - 1 - lag:len(train_date_list) - lag]
+            # test_date_list_selected = test_date_list[self.lag_date - 1 - lag:len(test_date_list) - lag]
+
+            # train 
+            train_feature = self.myconnector.read_eod_feature(
+                feature_name, dates=train_date_list[self.lag_date - 1 - lag:len(train_date_list) - lag]
+            )
+            train_feature = train_feature + train_feature * 0  # remove inf 
+            # self.train_data[feature] = train_feature.stack(dropna=False).values
+            train_data_np.append(train_feature.stack(dropna=False).values)
+            
+            # test
+            test_feature = self.myconnector.read_eod_feature(
+                feature_name, dates=test_date_list[self.lag_date - 1 - lag:len(test_date_list) - lag]
+            )
+            test_feature = test_feature + test_feature * 0  # remove inf
+            # self.test_data[feature] = test_feature.stack(dropna=False).values
+            test_data_np.append(test_feature.stack(dropna=False).values)
+            # train_res_list.append(
+            #     pool.apply_async(self.prepare_data_subprocess, args=(feature_name, train_date_list_selected))
+            # )
+
+            # test_res_list.append(
+            #     pool.apply_async(self.prepare_data_subprocess, args=(feature_name, test_date_list_selected))
+            # )
+        # print('set up finish')
+        # time.sleep(1)
+
+        # for train_res in train_res_list:
+        #     train_data_np.append(train_res.get())
+        
+        # for test_res in test_res_list:
+        #     test_data_np.append(test_res.get())
+        
+        # pool.close()
+        # pool.join()
+
+        # concat 
         self.train_data = pd.DataFrame(
+            np.vstack(train_data_np).T,
             index=self.return_data[train_date_list[self.lag_date - 1:]].stack(dropna=False).index,
-            columns=self.features + ['label'], 
-            dtype='float'
+            columns=self.features # + ['label']
         )
         self.test_data = pd.DataFrame(
+            np.vstack(test_data_np).T, 
             index=self.return_data[test_date_list[self.lag_date - 1:]].stack(dropna=False).index,
-            columns=self.features + ['label'], 
-            dtype='float'
+            columns=self.features #  + ['label']
         )
-
-        # populate
-        for feature in self.features:
-            feature_name = feature[:-2]  # remove lag
-            lag = int(feature[-1])       # extract lag 
-            self.train_data[feature] = self.factor_dict[feature_name][train_date_list[self.lag_date - 1 - lag:len(train_date_list) - lag]].stack(dropna=False).values
-            self.test_data[feature] = self.factor_dict[feature_name][test_date_list[self.lag_date - 1 - lag:len(test_date_list) - lag]].stack(dropna=False).values
+        # y values
         self.train_data['label'] = self.return_data[train_date_list[self.lag_date - 1:]].stack(dropna=False).values
         self.test_data['label'] = self.return_data[test_date_list[self.lag_date - 1:]].stack(dropna=False).values
         # self.train_mask = self.y_mask[train_date_list[self.lag_date - 1:]].stack(dropna=False).values

@@ -35,8 +35,8 @@ features = os.listdir('data/features/factor')
 features = [x[4:] for x in features]
 
 # exclude some factors 
-features = [x for x in features if 'alpha' not in x.lower()]
-features = [x for x in features if 'signal' not in x]
+# features = [x for x in features if 'alpha' not in x.lower()]
+# features = [x for x in features if 'signal' not in x]
 
 # features = ['ATR_30', 'Alpha42', 'cokurt_40', 'mom_5']  # for testing purposes
 
@@ -46,7 +46,7 @@ skip_features = None
 
 # * -------- model selection -------- * 
 # 'linear', 'xgb', 'Lgb', 'rf'
-model_selection = 'lgb'
+model_selection = 'linear'
 
 # ————————traing config ————————
 cost = 0.0015

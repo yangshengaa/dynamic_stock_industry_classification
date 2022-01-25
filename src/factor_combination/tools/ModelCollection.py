@@ -12,6 +12,7 @@ import sys
 import time
 import copy
 import pickle
+import logging
 import numpy as np
 import pandas as pd
 from itertools import product
@@ -108,7 +109,7 @@ class LinearModel:
             elif 'ridge' in self.model_type:
                 Linear = linear_model.LogisticRegression(penalty='l2', C=1 / self.alpha, max_iter=5000)
         else:
-            print("Wrong Type in Linear Training. Use Regressor.")
+            logging.warn("Wrong Type in Linear Training. Use Regressor.")
             default_paras['eval_metric'] = 'rmse'
             if 'linear' in self.model_type:
                 Linear = linear_model.LinearRegression()
@@ -135,7 +136,7 @@ class LinearModel:
         curr_time = time.strftime('%H%M', time.localtime(time.time()))
         self.number = curr_date + curr_time
 
-        self.LinearDef = self.myLinearModel()
+        # self.LinearDef = self.myLinearModel()
         self.number = curr_date + curr_time
         self.model = {}  # 用来存每次滚动训练的线性模型
         self.total_test_y = []  # 用来存每次训练魔性的原始label
@@ -207,13 +208,13 @@ class LinearModel:
             print(f'Train X Shape:{train_X.shape}')
 
             # prepare to be stored 
-            pred_test_Y = test_Y.copy(deep=True)
+            # pred_test_Y = test_Y.copy(deep=True)
 
             # obtain weights in dates s=
             weights = self.DataTools.weights_cal(train_Y, self.weight_method)
 
             # Start Training 
-            Linear = self.LinearDef
+            Linear = self.myLinearModel() # self.LinearDef
             Linear.feature_names = self.features
             Linear.fit(train_X.values, train_Y.values, sample_weight=weights)
 
@@ -235,7 +236,7 @@ class LinearModel:
                     self.coef_df['train{}_{}'.format(train_date_list[0], train_date_list[-1])] = coeff[0]
 
             # save models 
-            self.model['train{}_{}'.format(train_date_list[0], train_date_list[-1])] = copy.deepcopy(Linear)
+            self.model['train{}_{}'.format(train_date_list[0], train_date_list[-1])] = Linear # copy.deepcopy(Linear)
 
 
             # Start Prediction 
@@ -246,7 +247,8 @@ class LinearModel:
                 pred_test_class_y = Linear.predict(test_X.values)
             else:
                 pred_test_y = Linear.predict(test_X.values).reshape(-1)
-            pred_test_Y.iloc[:] = pred_test_y
+            # pred_test_Y.iloc[:] = pred_test_y
+            pred_test_Y = pd.Series(pred_test_y, index=test_Y.index)
             self.total_test_period_df[test_date_list[cfg.lag_date - 1:]] = pred_test_Y.unstack()
             self.total_pred_test_y.append(pred_test_y)
 
@@ -263,8 +265,8 @@ class LinearModel:
             idx = ~(np.isnan(test_Y) | np.isinf(test_Y) | np.isnan(pred_test_y) | np.isinf(pred_test_y))
 
             # plot in-sample/out-sample stats
-            pred_train_y = Linear.predict(train_X)
-            train_y = train_Y.values
+            # pred_train_y = Linear.predict(train_X)
+            # train_y = train_Y.values
             # print(type(pred_train_y), type(train_y))
             # self.plot_fig(predy=pred_test_y[idx], testy=test_Y[idx], date=train_date_list[-1], type='outsample')
             # self.plot_fig(predy=pred_train_y, testy=train_y, date=train_date_list[-1], type='insample')
@@ -1462,7 +1464,7 @@ class LgbModel:
         curr_date = time.strftime('%Y%m%d', time.localtime(time.time()))
         curr_time = time.strftime('%H%M', time.localtime(time.time()))
 
-        self.LgbDef = self.myLgbModel(paras=cfg.lgb_paras)
+        # self.LgbDef = self.myLgbModel(paras=cfg.lgb_paras)
         self.number = curr_date + curr_time
         # with open(self.model_params_path + "lgb_{}.pkl".format(self.number), 'wb') as f:
         #    pickle.dump(self.LgbDef.get_params(), f)
@@ -1615,7 +1617,8 @@ class LgbModel:
                 # LgbTree = self.myLgbModel(paras=grid.best_params_)
 
             else:
-                LgbTree = self.LgbDef
+                # LgbTree = self.LgbDef
+                LgbTree = self.myLgbModel(paras=cfg.lgb_paras)
 
             # if cfg.record_loss:
             #     idx = ~(np.isnan(test_Y) | np.isinf(test_Y))
