@@ -1,4 +1,5 @@
 """
+Compute Style Factor Returns
 计算风格因子收益率
 """
 
@@ -12,44 +13,32 @@ import traceback
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
-import matplotlib.pyplot as plt
-# # 控制numpy进程数
+# # control numpy threads
 # os.environ["MKL_NUM_THREADS"] = "10" 
 # os.environ["NUMEXPR_NUM_THREADS"] = "10" 
 # os.environ["OMP_NUM_THREADS"] = "10"
 # os.environ["OPENBLAS_NUM_THREADS"] = "10"
 
-# 绘图全局设置
-plt.rcParams['figure.figsize'] = [16, 8]
-plt.rcParams['xtick.labelsize'] = 12
-plt.rcParams['ytick.labelsize'] = 10
 # ignore warnings 
 logging.basicConfig(level=logging.CRITICAL)
 warnings.filterwarnings('ignore')
 
 # initialize dataserver 
-# from PqiDataSdk import *
 from src.data_ingestion.PqiDataSdk_Offline import PqiDataSdkOffline
-# from getpass import getuser
 
-# load file
+# load config
 import src.portfolio_optimization.config as cfg
-
 
 class FactorReturnGenerator(object):
     def __init__(self):
-        # 基本常量
+        # dates
         self.start_date = cfg.start_date
         self.end_date = cfg.end_date
-        # self.myconnector = PqiDataSdk(
-        #     user=getuser(), 
-        #     size=10, 
-        #     pool_type="mp", 
-        #     log=False, 
-        #     offline=True, 
-        #     str_map=False
-        # )
+
+        # dataserver
         self.myconnector = PqiDataSdkOffline()
+
+        # stock pool and dates
         self.all_stocks = self.myconnector.get_ticker_list()
         self.eod_data_dict = self.myconnector.get_eod_history(
             tickers=self.all_stocks, 
@@ -64,7 +53,7 @@ class FactorReturnGenerator(object):
         self.date_list = list(self.eod_data_dict['ClosePrice'].columns)
         self.index_code_to_name = cfg.index_code_to_name
         
-        # 收益率回看模式
+        # mode for return calculations 收益率回看模式
         self.ret_df_dict = {}    
         self.return_type_list = cfg.return_type_list
         self.Open = self.eod_data_dict["OpenPrice"] * self.eod_data_dict["AdjFactor"]
@@ -88,14 +77,14 @@ class FactorReturnGenerator(object):
         self.ind_df = pd.DataFrame()  # 行业0-1矩阵
         self.class_name = cfg.class_name
 
-        # 路径
+        # paths 路径
         self.class_factor_read_path = cfg.class_factor_path
         self.ret_save_path = cfg.ret_save_path
 
-        # 各类存储dict
-        self.class_factor_dict_adj = {}  # 存放大类风格因子值
-        self.factor_return_df_dict = {}  # 存放大类风格因子值的收益
-        self.idio_return_df_dict = {}    # 存放特质收益
+        # set up storing dicts 各类存储dict
+        self.class_factor_dict_adj = {}  # 存放大类风格因子值 aggregated style factors 
+        self.factor_return_df_dict = {}  # 存放大类风格因子值的收益 aggregated style factor returns
+        self.idio_return_df_dict = {}    # 存放特质收益 idiosyncratic returns
      
 
     def read_factor_data(self, feature_name, tickers, date_list):
@@ -125,34 +114,12 @@ class FactorReturnGenerator(object):
             self.class_factor_dict_adj[name] = self.read_factor_data(name, self.tickers , self.date_list)
     
 
-    # def get_ind_date(self):
-    #     # 读取行业数据
-    #     # TODO: 滚动变化的行业？
-    #     # TODO: add others (代码见low_fre_alpha_generator/process_raw/neutralize_factor)
-    #     # TODO: add country factor? (CNE5)
-    #     ind_members = self.myconnector.get_sw_members(level=[1])[["industry_name", "con_code"]]
-    #     self.ind_df = pd.DataFrame(index=self.ret_df.index, columns=sorted(list(set(ind_members["industry_name"]))))
-    #     for i in range(len(ind_members.index)):
-    #         label = list(ind_members.iloc[i])
-    #         self.ind_df.loc[label[1], label[0]] = 1
-    #     self.ind_df = self.ind_df.fillna(0)
-    #     # ind_name_list = ind_df.columns
-    #     self.ind_df.columns = ["ind_" + str(i + 1) for i in range(len(self.ind_df.columns))]
-
     def get_ind_date(self):
+        """ retrieve industry data """
         # 读取行业数据
         # TODO: 滚动变化的行业？
         # TODO: add others (代码见low_fre_alpha_generator/process_raw/neutralize_factor)
         # TODO: add country factor? (CNE5)
-        # ind_members = self.myconnector.get_sw_members(level=[1])[["industry_name", "con_code"]]
-        # self.ind_df = pd.DataFrame(index=self.tickers, columns=sorted(list(set(ind_members["industry_name"]))))
-        # for i in range(len(ind_members.index)):
-        #     label = list(ind_members.iloc[i])
-        #     self.ind_df.loc[label[1], label[0]] = 1
-        # self.ind_df = self.ind_df.fillna(0)
-        # # ind_name_list = ind_df.columns
-        # self.ind_df.columns = ["ind_" + str(i + 1) for i in range(len(self.ind_df.columns))]
-
         ind_members = self.myconnector.get_sw_members().drop_duplicates(subset=['con_code'])[["index_code", "con_code"]]
         self.ind_df = pd.DataFrame(
             index=self.all_stocks, columns=list(set(ind_members["index_code"]
@@ -164,35 +131,6 @@ class FactorReturnGenerator(object):
         self.ind_df = self.ind_df.fillna(0)
         self.ind_df.columns = ["ind_" + str(i + 1) for i in range(len(self.ind_df.columns))]
 
-
-    # 动态票池
-    # def get_stock_weight(self, index):
-    #     """
-    #     获取该指数在测试区间内的成分股权重
-    #     :param index:
-    #     :return: 一个大dataframe, index为股票名，column是日期，value是个股权重
-    #     """
-    #     # 读取对应的npy
-    #     index_to_weight = {
-    #         'zz500': 'ZZ500_WGT.npy',
-    #         'zz800': 'ZZ800_WGT.npy',
-    #         'zz1000': 'ZZ1000_WGT.npy',
-    #         'zzall': 'ZZall_WGT.npy',
-    #         'sz50': 'SZ50_WGT.npy',
-    #         'hs300': 'HS300_WGT.npy'
-    #     }
-    #     eod_path = '/home/shared/Data/data/nas/eod_data/stock_eod_npy/eod'
-    #     index_file = index_to_weight[index]
-
-    #     # 读入并转成dataframe形式
-    #     index_data = np.load(os.path.join(eod_path, index_file))
-    #     tickers = np.load(os.path.join(eod_path, 'ticker_names.npy'))
-    #     dates = np.load(os.path.join(eod_path, 'dates.npy'))
-    #     df = pd.DataFrame(index_data, columns=dates, index=tickers)
-        
-    #     # 与设置的时间段对齐
-    #     df_selected = df.loc[:, self.trade_dates]
-    #     return df_selected 
     
     def get_stock_weight(self, index: str) -> pd.DataFrame:
         """
@@ -218,6 +156,7 @@ class FactorReturnGenerator(object):
     
     def get_index_mask(self, index_list):
         """
+        read stock index weights and convert to mask. 1 if it is a member stock, nan otherwise.
         读取指数成分股权重，转换成指数成分股mask: 当天某股票为该指数成分股为1，否则为nan
         :param index_list: 一个装有指数的列表，支持组合指数
         :return 指数mask
@@ -234,9 +173,7 @@ class FactorReturnGenerator(object):
 
 
     def calc_fac_ret(self, return_type):
-        """
-        计算风格因子收益率 (与riskplot平台不同，此处用的是WLS)
-        """
+        """ 计算风格因子收益率 (与riskplot平台不同，此处用的是WLS) """
         # 获取收益率
         ret_df = self.ret_df_dict[return_type]
         
@@ -255,12 +192,9 @@ class FactorReturnGenerator(object):
         f_2 = []  # 存放特质收益率
         ticker_total_lst = []  # 存放非nan的ticker
         X = self.ind_df.copy()  # 外层copy一次，循环内自己换factor_name
-        for t in range(len(self.date_list) - shift_step):
 
-            # fix c2next_c first day empty: 
-            if t == 0:
-                continue
-            
+        has_value_dates = []  # store dates that have values # * for local data only 
+        for t in range(len(self.date_list) - shift_step):            
             # prepare data
             Y = ret_df.iloc[:, t + shift_step]
             #dt = fac.columns.tolist()[t+shift_step]
@@ -270,9 +204,9 @@ class FactorReturnGenerator(object):
             all_df = pd.concat([Y, X, today_size], axis=1).dropna(axis = 0)
             ticker_lst = all_df.index
             data = all_df.values.T
-            # print(data.shape)
             
             if len(data[0]) > 0:  # 目前必须当日要有数据，否则后面设置index的时候会报错
+                has_value_dates.append(self.date_list[t])
                 # ind risk 回归  
                 # sm.WLS的weight是1/sqrt(w)            
                 data_x, data_y, data_weight = data[1:-1].T, data[0], data[-1]
@@ -283,28 +217,36 @@ class FactorReturnGenerator(object):
                 residual = data_y - data_x.dot(res.params)
                 f_2.append(residual)  # 特质收益率
                 ticker_total_lst.append(ticker_lst) # 当日有值的ticker
-            
-            else: # otherwise fillna 
-                f_1.append(np.array([np.nan] * (data.shape[0] - 2)))
-                # f_2.append(np.array([np.nan] * data.shape[1]))
-        
+
+        # find out nan dates
+        nan_dates = list(set(self.date_list) - set(has_value_dates))
+
         # 拼接因子收益率
         fac_name_list = list(self.ind_df.columns) + list(self.class_factor_dict_adj.keys())
         factor_return_df = pd.DataFrame(
             f_1, 
             columns=fac_name_list,
-            index=self.date_list[1:]  # * 针对目前的c2next_c实际上是last_c2c
+            # index=self.date_list[1:]  # * 针对目前的c2next_c实际上是last_c2c
+            index=has_value_dates
         )
+        # fill back nan
+        nan_factor_return_df = pd.DataFrame(np.nan, columns=fac_name_list, index=nan_dates)
+        factor_return_df = factor_return_df.append(nan_factor_return_df)
+        factor_return_df.sort_index(inplace=True)  # sort on dates
         self.factor_return_df_dict[return_type] = factor_return_df
         
-        # 拼接特质收益率
-        # * 针对目前的c2next_c实际上是last_c2c
+        # 拼接特质收益率  # * 针对目前的c2next_c实际上是last_c2c
         idio_return_df = pd.concat(
-            [pd.Series(each_f_2, index=each_ticker, name=each_date) for each_f_2, each_ticker, each_date in zip(f_2, ticker_total_lst, self.date_list[1:])], 
+            # [pd.Series(each_f_2, index=each_ticker, name=each_date) for each_f_2, each_ticker, each_date in zip(f_2, ticker_total_lst, self.date_list[1:])], 
+            [pd.Series(each_f_2, index=each_ticker, name=each_date) for each_f_2, each_ticker, each_date in zip(f_2, ticker_total_lst, has_value_dates)],
             axis=1
         ).T  # columns为ticker，index为日期
         idio_return_df[list(set(self.tickers) - set(idio_return_df.columns))] = np.nan  # 给剩下的都附上nan
         idio_return_df = idio_return_df.sort_index(axis = 1)
+        # fill back nan
+        nan_idio_return_df = pd.DataFrame(np.nan, columns=self.tickers, index=nan_dates)
+        idio_return_df = idio_return_df.append(nan_idio_return_df)
+        idio_return_df.sort_index(inplace=True)  # sort on dates
         self.idio_return_df_dict[return_type] = idio_return_df
 
 
@@ -313,35 +255,38 @@ class FactorReturnGenerator(object):
         把收益率储存到本地
         '''
         for return_type in self.return_type_list:
+            # make new dir 
             if not os.path.isdir(self.ret_save_path):
                 os.mkdir(self.ret_save_path)
-            self.factor_return_df_dict[return_type].to_csv('{}/Factor_return_{}_.csv'.format(self.ret_save_path, return_type))
-            self.idio_return_df_dict[return_type].to_csv('{}/Idio_return_{}_.csv'.format(self.ret_save_path, return_type))
+
+            # save
+            self.factor_return_df_dict[return_type].to_csv(
+                '{}/Factor_return_{}_.csv'.format(self.ret_save_path, return_type), 
+                float_format='%.8f'
+            )
+            self.idio_return_df_dict[return_type].to_csv(
+                '{}/Idio_return_{}_.csv'.format(self.ret_save_path, return_type), 
+                float_format='%.8f'
+            )
         
     
     def start_cal_return_process(self):
-        """
-        运行主函数
-        """
-        print("正在读取风格因子")
+        """ 运行主函数 """
+        print("Reading Style Factors 正在读取风格因子")
         t0 = time.time()
         self.load_factor_data()
         self.get_ind_date()
-        print("读取风格因子耗时", time.time() - t0)
-        print("正在计算风格行业因子收益率和特质收益率")
+        print("Style Factor Reading Takes 读取风格因子耗时", time.time() - t0)
+        print("Calculating Style Factor Returns and Idio Returns 正在计算风格行业因子收益率和特质收益率")
         t0 = time.time()
         for ret_type in self.return_type_list:
             self.calc_fac_ret(ret_type)
             
-        print("计算风格行业因子收益率和特质收益率耗时", time.time() - t0)
+        print("Return Calculation Takes 计算风格行业因子收益率和特质收益率耗时", time.time() - t0)
         
         # 数据结果落地
-        print("正在储存数据")
+        print("Storing 正在储存数据")
         t0 = time.time()
         self.save_ret()
-        print("储存数据耗时", time.time() - t0)
+        print("Storing takes 储存数据耗时", time.time() - t0)
 
-
-# if __name__ == '__main__':
-#     loading_process = FactorReturnGenerator()
-#     loading_process.start_cal_return_process()

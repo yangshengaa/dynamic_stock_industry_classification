@@ -20,6 +20,20 @@ This project contains the following five modules:
 
 China A-Share stocks, the corresponding major index data (sz50, hs300, zz500, zz1000), and the member stock weights from 20150101 to 20211231, provided by Shanghai Probability Quantitative Investment.
 
+## Experiment Results
+
+**Stock Pool**: zz1000 member stocks  
+**Benchmark**: zz1000 index  
+**Time Period**: 20170101 - 20211231  
+
+| Model | AlphaReturn (cumsum) | AlphaSharpe | AlphaDrawdown | Turnover |
+| ----- | :---------------------: | :----------: | :-----------: | :------: |
+| LinearRegressor | 82.55 | 2.06 | -19.89 | 1.0 |
+| LgbmRegressor | 150.56 | 3.47 | -11.14 | 1.17 |
+
+TODO: add stats after portfolio opt;  
+TODO: add graph improved model stats;
+
 ## Quick Start
 
 It's very easy to use this platform!

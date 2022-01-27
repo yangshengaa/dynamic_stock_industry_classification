@@ -30,6 +30,8 @@ s.t. \ \ \forall i \ \ W_{low} \leq x_i \leq W_{high}, \ \ \sum_{i=1}^n x_i = 1 
 \sum_{i=1}^n |x - x_{t-1}| \leq TO_{limit} (换手率约束)
 $$
 
+- <img src="https://latex.codecogs.com/png.latex?\max_x \ \ R^T x - \lambda x^T \Sigma x \\s.t. \ \ \forall i \ \ W_{low} \leq x_i \leq W_{high}, \ \ \sum_{i=1}^n x_i = 1 \ \  \\\forall k  \ \ S_{low} \leq (x^T - w_{bench}^T) X_{style_k} \leq S_{high} \\\forall k  \ \ I_{low} \leq (x^T - w_{bench}^T) X_{ind_k} \leq I_{high} \\\sum_{i=1}^n |x - x_{t-1}| \leq TO_{limit}  "/>
+
 ### qp_method_2
 
 目标函数：最大化经风险和交易成本调整后收益率

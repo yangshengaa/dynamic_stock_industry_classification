@@ -10,7 +10,8 @@ portfolio optimization config. In sequence, we have
 
 # —————— data path ——————
 class_factor_path = "data/features/risk_factor/class_factors"  # aggregated style factor path
-ret_save_path = 'out/return'  # factor return store path
+# ret_save_path = 'out/return'  # factor return store path
+ret_save_path = 'out/temp'
 cov_save_path = 'out/cov'  # covariance matrix store path f"../res/cov/"
 input_signal_path = 'out/signal_df'   # input signal df
 output_signal_path = 'out/signal_df'    # output signal df
@@ -18,7 +19,7 @@ fig_save_path = 'out/risk_fig/'
 ml_factor_path = 'data/features/ml_factors' # predicted return path
 index_member_stock_path = 'data/parsed/index_stock_weight'
 
-start_date = '20210801'
+start_date = '20170701'
 end_date = '20211231'
 
 return_type_list =  ['c2next_c'] # ['o2next_o', 'c2next_o', 'o2c', 'c2next_c']
@@ -74,14 +75,14 @@ lam_vol = 0.5 ** (1/tau_vol)   # 波动率偏误调整 EWMA权重
 # —————— portfolio optimization ——————
 # TODO: use a different signal and ml factor
 # input_signal_df_name = 'xgb_agg.csv'  # 输入信号名字，信号格式为0/1 
-input_signal_df_name = 'lgb_161227_211231_240_40_202201170028_Regressor_zz1000_fmv_100_1/long_0'
+input_signal_df_name = 'lgb_161227_211231_240_40_202201240953_Regressor_zz1000_fmv_100_1/long_0'
 obj_func = 'ret_var' # 目标函数：min_var (最小方差)/ ret_var (均值-方差优化)
 
 weight_low = 0.001   # 权重下限
 weight_high = 0.05  # 权重上限
 
 # ml_factor_name = 'xgb_161227_201231_240_40_202109090912_Regressor'
-ml_factor_name = 'lgb_161227_211231_240_40_202201170028_Regressor'
+ml_factor_name = 'lgb_161227_211231_240_40_202201240953_Regressor'
 
 benchmark_index = 'zz1000'  # 风格行业中性约束的基准指数
 
@@ -96,7 +97,7 @@ ind_high_limit = 0.1
 turnover_constraint = True  # 换手率约束
 turnover_limit = 0.9
 
-penalty_lambda = 10  # 风险厌恶系数 
+penalty_lambda = 10  # 风险厌恶系数   # TODO: 不同的风险系数
 penalty_theta = 0.1  # 换仓惩罚  # 仅在method 2 中使用 # 如果用的是0.015/2， 则该项刚好为实盘cost
 penalty_nu = 100     # 风格暴露惩罚  # 仅在method 3 中使用
 penalty_xi = 1       # 模型错位风险惩罚  # 仅在method 4 中使用

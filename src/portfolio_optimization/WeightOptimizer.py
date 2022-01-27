@@ -4,48 +4,38 @@
 # load packages 
 import os
 import time
+import pickle
 import traceback
 import logging
 import numpy as np
 import pandas as pd
-import statsmodels.api as sm
-import matplotlib.pyplot as plt
-from sklearn import linear_model
-import pickle
 
 import cvxopt
 from cvxopt import matrix, solvers
 solvers.options['show_progress'] = False
 
-# # 控制进程数
+# Control numpy threads
 # os.environ["MKL_NUM_THREADS"] = "10" 
 # os.environ["NUMEXPR_NUM_THREADS"] = "10" 
 # os.environ["OMP_NUM_THREADS"] = "10"
 # os.environ["OPENBLAS_NUM_THREADS"] = "10"
 
 # initialize dataserver 
-# from PqiDataSdk import *
 from src.data_ingestion.PqiDataSdk_Offline import PqiDataSdkOffline
-# from getpass import getuser
 
-# load files
+# load config
 import src.portfolio_optimization.config as cfg
 
 class WeightOptimizer():
     def __init__(self):
-        # self.idio_return_df_dict = {}
-        # self.factor_return_df_dict = {}
+        # basics 
         self.start_date = cfg.start_date
         self.end_date = cfg.end_date
-        # self.myconnector = PqiDataSdk(
-        #     user=getuser(), 
-        #     size=10, 
-        #     pool_type="mp", 
-        #     log=False, 
-        #     offline=True, 
-        #     str_map=False
-        # )
+        
+        # dataserver
         self.myconnector = PqiDataSdkOffline()
+
+        # stock pools and dates
         self.all_stocks = self.myconnector.get_ticker_list()
         self.eod_data_dict = self.myconnector.get_eod_history(
             tickers=self.all_stocks, 
@@ -57,19 +47,8 @@ class WeightOptimizer():
             start_date=self.start_date, 
             end_date=self.end_date
         )
-        
-        # self.ret_df_dict = {}
-        # self.Open = self.eod_data_dict["OpenPrice"] * self.eod_data_dict["AdjFactor"]
-        # self.Close = self.eod_data_dict["ClosePrice"] * self.eod_data_dict["AdjFactor"]
-        # if 'o2next_o' in self.return_type_list:
-        #     self.ret_df_dict['o2next_o'] = self.Open.shift(-1, axis=1) / self.Open - 1
-        # if 'c2next_o' in self.return_type_list:
-        #     self.ret_df_dict['c2next_o'] = self.Open.shift(-1, axis=1) / self.Close - 1
-        # if 'o2c' in self.return_type_list:
-        #     self.ret_df_dict['o2c'] = self.Close / self.Open - 1
-        # if 'c2next_c' in self.return_type_list:
-        #     self.ret_df_dict['c2next_c'] = self.Close.shift(-1, axis=1) / self.Close - 1
 
+        # to be populated 
         self.factor_cov_dict = {}
         self.idio_var_dict = {}
         self.cov_save_path = cfg.cov_save_path
@@ -86,6 +65,7 @@ class WeightOptimizer():
 
         self.opt_signal_dict = {}
         
+        # parameters
         self.class_name = cfg.class_name
         self.penalty_lambda = cfg.penalty_lambda
         self.penalty_theta = cfg.penalty_theta
@@ -101,8 +81,15 @@ class WeightOptimizer():
         self.qp_method = cfg.qp_method
 
 
+    # ==============================================
+    # -------------- data prep ---------------------
+    # ==============================================
+
     def read_cov_data(self, return_type):
-        """ 读取因子和特质收益率协方差矩阵 """
+        """ 
+        read factor cov and idio cov
+        读取因子和特质收益率协方差矩阵 
+        """
         factor_cov_file_name = os.path.join(self.cov_save_path, 'factor_cov_est_{}{}'.format(return_type,cfg.adj_method))
         idio_var_file_name = os.path.join(self.cov_save_path, 'idio_var_est_{}{}'.format(return_type,cfg.adj_method))
 
@@ -118,14 +105,18 @@ class WeightOptimizer():
 
 
     def load_cov_data(self):
-        """ 读取所有协方差估计 """
+        """ 
+        load cov estimates of all return modes
+        读取所有协方差估计 
+        """
         for name in self.return_type_list:
             self.factor_cov_dict[name], self.idio_var_dict[name] = self.read_cov_data(name)
 
 
     def load_signal_data(self):
-        # self.input_signal = pd.read_csv(cfg.input_signal_path + cfg.input_signal_df_name, index_col = 0)
-        self.input_signal = pd.read_feather(os.path.join(cfg.input_signal_path, cfg.input_signal_df_name)).set_index('index')
+        self.input_signal = pd.read_feather(
+            os.path.join(cfg.input_signal_path, cfg.input_signal_df_name)
+        ).set_index('index')
 
 
     def read_factor_data(self,feature_name, tickers, date_list):
@@ -149,16 +140,9 @@ class WeightOptimizer():
 
 
     def get_ind_date(self):
+        """ read industry data """
         # 读取行业数据
         # # TODO: add others
-        # ind_members = self.myconnector.get_sw_members(level=[1])[["industry_name", "con_code"]]
-        # self.ind_df = pd.DataFrame(index=self.tickers, columns=sorted(list(set(ind_members["industry_name"]))))
-        # for i in range(len(ind_members.index)):
-        #     label = list(ind_members.iloc[i])
-        #     self.ind_df.loc[label[1], label[0]] = 1
-        # self.ind_df = self.ind_df.fillna(0)
-        # # ind_name_list = ind_df.columns
-        # self.ind_df.columns = ["ind_" + str(i + 1) for i in range(len(self.ind_df.columns))]
         ind_members = self.myconnector.get_sw_members().drop_duplicates(subset=['con_code'])[["index_code", "con_code"]]
         self.ind_df = pd.DataFrame(
             index=self.all_stocks, columns=list(set(ind_members["index_code"]
@@ -172,25 +156,19 @@ class WeightOptimizer():
 
 
     def read_ml_factor_data(self, feature_name, tickers, date_list):
-        """
-        读取ml预测收益率因子数据
-        """
+        """ read ml predicted returns (factor) 读取ml预测收益率因子数据 """
         # 读取原始因子值
-        path = cfg.ml_factor_path
-        # feature_name = "eod_" + feature_name
-        # factor = self.myconnector.get_eod_feature(fields=feature_name,
-        #                                         where=path,
-        #                                         tickers=tickers,
-        #                                         dates=date_list)
         factor_df = self.myconnector.read_eod_feature(
             feature_name, des='ml_factor', dates=date_list
         )
-        # factor_df = factor[feature_name].to_dataframe()
         return factor_df
 
 
     def get_opt_dates(self):
-        '''获取需要组合权重优化的日期列表（持仓信号和协方差矩阵的日期交集）'''  
+        """
+        get date list (date intersection of signals, cov estimates, and basic data)
+        获取需要组合权重优化的日期列表（持仓信号和协方差矩阵的日期交集）
+        """  
         factor_cov_est = self.factor_cov_dict[self.return_type_list[0]]
         self.date_list_cov = [str(x) for x in list(set(factor_cov_est.keys()))]
         self.date_list_signal = list(set(self.input_signal.columns))
@@ -205,36 +183,6 @@ class WeightOptimizer():
         self.get_ind_date()
         self.get_opt_dates()
 
-    # 动态票池
-    # def get_stock_weight(self,index):
-    #     """
-    #     获取该指数在测试区间内的成分股权重
-    #     :param index:
-    #     :return: 一个大dataframe, index为股票名，column是日期，value是个股权重
-    #     """
-    #     # 读取对应的npy
-    #     index_to_weight = {
-    #         'zz500': 'ZZ500_WGT.npy',
-    #         'zz800': 'ZZ800_WGT.npy',
-    #         'zz1000': 'ZZ1000_WGT.npy',
-    #         'zzall': 'ZZall_WGT.npy',
-    #         'sz50': 'SZ50_WGT.npy',
-    #         'hs300': 'HS300_WGT.npy'
-    #     }
-    #     eod_path = '/home/shared/Data/data/nas/eod_data/stock_eod_npy/eod'
-    #     index_file = index_to_weight[index]
-
-    #     # 读入并转成dataframe形式
-    #     index_data = np.load(os.path.join(eod_path, index_file))
-    #     tickers = np.load(os.path.join(eod_path, 'ticker_names.npy'))
-    #     dates = np.load(os.path.join(eod_path, 'dates.npy'))
-    #     df = pd.DataFrame(index_data, columns=dates, index=tickers)
-        
-    #     # 与设置的时间段对齐
-    #     # template_to_align_index = self.eod_date_dict['ClosePrice']
-    #     df_selected = df # + (template_to_align_index - template_to_align_index)
-    #     df_selected = df.loc[:, self.date_list]
-    #     return df_selected 
     def get_stock_weight(self, index: str) -> pd.DataFrame:
         """
         get stock weights of an given index within a timeframe 
@@ -273,9 +221,15 @@ class WeightOptimizer():
         agg_index_mask = agg_index_mask.astype(int) / agg_index_mask.astype(int)
         return agg_index_mask   
 
+    # =====================================================
+    # ------------------ compute sigma --------------------
+    # =====================================================
 
-    def cal_sigma_holding(self,return_type):
-        '''计算每日持仓股票的协方差矩阵Sigma'''
+    def cal_sigma_holding(self, return_type):
+        """
+        compute daily holding sigma 
+        计算每日持仓股票的协方差矩阵Sigma
+        """
         factor_cov_est = self.factor_cov_dict[return_type]
         idio_var_est = self.idio_var_dict[return_type]
 
@@ -294,10 +248,9 @@ class WeightOptimizer():
             # 当日指数成分股
             self.benchmark_index_list_dict[date] = self.benchmark_index_weight[self.benchmark_index_weight[date].notna()].index
             
+            # factor cov and idio cov 
             Sigma_F = factor_cov_est[date]
-            
             diag_E = idio_var_est[date][holding_stock_list].values[0]
-
             diag_E[np.isnan(diag_E)] = np.nanmean(diag_E)  # TODO: 改进处理nan的方法
             # print(date)
             # print(holding_stock_list)
@@ -306,10 +259,8 @@ class WeightOptimizer():
             # diag_E = idio_var_est[date]
             # diag_E[np.isnan(diag_E)] = np.nanmean(diag_E)  
             # diag_E = diag_E[holding_stock_list].values[0]
-
             Sigma_E = np.diag(diag_E)             
             
-
             # factor loading
             X = self.ind_df.copy()
             for class_name in self.class_factor_dict_adj.keys():
@@ -321,11 +272,12 @@ class WeightOptimizer():
             Sigma_holding_stock = Sigma_Signal + Sigma_E
 
             sigma_holding[date] = Sigma_holding_stock
-
         
         self.sigma_holding_dict[return_type] = sigma_holding
 
-
+    # =====================================================
+    # ------------------ optimization ---------------------
+    # =====================================================
 
     def qp_method_1(self, date, Sigma_holding_stock, prev_holdings):
         num_holding = Sigma_holding_stock.shape[0]
@@ -339,44 +291,91 @@ class WeightOptimizer():
         ind_low_limit = self.all_ind_low_limit
         ind_high_limit = self.all_ind_high_limit
         # previous_day_signal = opt_signal.shift(1, axis = 1).fillna(0)[date][holding_stock_list].values
-        
+
+        # specify base 
+        if 'min_var' in self.obj_func:
+
+            P_raw = 2 * matrix(Sigma_holding_stock)
+            q_raw = matrix(np.zeros(num_holding))
+
+        elif 'ret_var' in self.obj_func:  # 最大化经风险调整后收益
+            P_raw = 2 * matrix(Sigma_holding_stock)
+
+            # 预测收益率
+            current_holding_pred_return = self.pred_ret_df[date][holding_stock_list].fillna(0) # TODO: 改进处理nan的方法
+            q_raw = matrix(-current_holding_pred_return / self.penalty_lambda)
+        else:
+            raise NotImplementedError('Cannot support this objective function')
+
+        # TODO: sparse matrix
+        # 约束条件：持仓权重上下限 base quadratic functions 
+        G_raw = matrix(np.vstack((np.identity(num_holding), -np.identity(num_holding))))
+        h_raw = matrix(np.hstack((np.full(num_holding, weight_high), np.full(num_holding, -weight_low))))
+        #h = matrix(np.hstack((np.ones(num_holding), np.zeros(num_holding))))
+        A_raw = matrix(np.ones(num_holding), (1,num_holding))
+        b_raw = matrix(1.0)
+
+        # prepare
+        benchmark_stock_list = self.benchmark_index_list_dict[date]
+
+        X_style = pd.DataFrame()
+        for class_name in self.class_factor_dict_adj.keys():
+            X_style[class_name] = self.class_factor_dict_adj[class_name][date]
+
+        X_style_holding = X_style.T[holding_stock_list].fillna(0) # TODO: 改进处理nan的方法
+        X_ind_holding = self.ind_df.T[holding_stock_list]
+        X_style_benchmark = X_style.T[benchmark_stock_list].fillna(0)
+        benchmark_current_weight = self.benchmark_index_weight[date][self.benchmark_index_weight[date].notna()]
+
+        # start loop
         status = False
-        while not status:
+        while not status:  
+            # deep copy 
+            G = matrix(G_raw)
+            h = matrix(h_raw)
+            A = matrix(A_raw)
+            b = matrix(b_raw)
+            P = matrix(P_raw)
+            q = matrix(q_raw)
 
-            if 'min_var' in self.obj_func:
+            # if 'min_var' in self.obj_func:
             
-                P = 2* matrix(Sigma_holding_stock)
-                q = matrix(np.zeros(num_holding))
+            #     P = 2* matrix(Sigma_holding_stock)
+            #     q = matrix(np.zeros(num_holding))
 
-            elif 'ret_var' in self.obj_func:  # 最大化经风险调整后收益
-                P = 2* matrix(Sigma_holding_stock)
+            # elif 'ret_var' in self.obj_func:  # 最大化经风险调整后收益
+            #     P = 2* matrix(Sigma_holding_stock)
 
-                # 预测收益率
-                current_holding_pred_return = self.pred_ret_df[date][holding_stock_list].fillna(0) # TODO: 改进处理nan的方法
-                q = matrix(-current_holding_pred_return / self.penalty_lambda)
-            else:
-                print('Cannot support this objective function')
-                break
+            #     # 预测收益率
+            #     current_holding_pred_return = self.pred_ret_df[date][holding_stock_list].fillna(0) # TODO: 改进处理nan的方法
+            #     q = matrix(-current_holding_pred_return / self.penalty_lambda)
+            # else:
+            #     print('Cannot support this objective function')
+            #     break
 
-            # 约束条件：持仓权重上下限
-            G = matrix(np.vstack((np.identity(num_holding), -np.identity(num_holding))))
-            h = matrix(np.hstack((np.full(num_holding, weight_high), np.full(num_holding, -weight_low))))
-            #h = matrix(np.hstack((np.ones(num_holding), np.zeros(num_holding))))
-            A = matrix(np.ones(num_holding), (1,num_holding))
-            b = matrix(1.0)
+            # # 约束条件：持仓权重上下限
+            # G = matrix(np.vstack((np.identity(num_holding), -np.identity(num_holding))))
+            # h = matrix(np.hstack((np.full(num_holding, weight_high), np.full(num_holding, -weight_low))))
+            # #h = matrix(np.hstack((np.ones(num_holding), np.zeros(num_holding))))
+            # A = matrix(np.ones(num_holding), (1,num_holding))
+            # b = matrix(1.0)
             
             # 约束条件：行业风格中性
             
-            benchmark_stock_list = self.benchmark_index_list_dict[date]
+            # benchmark_stock_list = self.benchmark_index_list_dict[date]
 
-            X_style = pd.DataFrame()
-            for class_name in self.class_factor_dict_adj.keys():
-                X_style[class_name] = self.class_factor_dict_adj[class_name][date]
+            # X_style = pd.DataFrame()
+            # for class_name in self.class_factor_dict_adj.keys():
+            #     # print(class_name)
+            #     # print(self.class_factor_dict_adj[class_name][date])
 
-            X_style_holding = X_style.T[holding_stock_list].fillna(0) # TODO: 改进处理nan的方法
-            X_ind_holding = self.ind_df.T[holding_stock_list]
-            X_style_benchmark = X_style.T[benchmark_stock_list].fillna(0)
-            benchmark_current_weight = self.benchmark_index_weight[date][self.benchmark_index_weight[date].notna()]
+            #     # print()
+            #     X_style[class_name] = self.class_factor_dict_adj[class_name][date]
+
+            # X_style_holding = X_style.T[holding_stock_list].fillna(0) # TODO: 改进处理nan的方法
+            # X_ind_holding = self.ind_df.T[holding_stock_list]
+            # X_style_benchmark = X_style.T[benchmark_stock_list].fillna(0)
+            # benchmark_current_weight = self.benchmark_index_weight[date][self.benchmark_index_weight[date].notna()]
 
             # 风格中性
             if cfg.style_neutralize:
@@ -404,7 +403,6 @@ class WeightOptimizer():
             # 限制换手率
             
             if cfg.turnover_constraint:
-                
 
                 previous_day_signal = prev_holdings # opt_signal.shift(1, axis = 1).fillna(0)[date][holding_stock_list].values
                 fixed_turnover = 1 - previous_day_signal.sum()
@@ -428,7 +426,8 @@ class WeightOptimizer():
                 solution = np.array(sol['x'])
                 status = 'optimal' in sol['status']
             except:
-                traceback_msg = traceback.format_exc()
+                # traceback_msg = traceback.format_exc()
+                
                 status = False
 
             if not status:
@@ -443,9 +442,10 @@ class WeightOptimizer():
                             # 所有约束失败
                             status = True
                             # print(date)
-                            logging.warning(f'{date}: fail to constraint, return naive equal weight instead')
-                            weight = np.ones(num_holding) / num_holding
-                            return weight
+                            logging.warning(f'{date}: fail to constraint')
+                            # print(traceback_msg)
+                            # weight = np.ones(num_holding) / num_holding
+                            # return weight
                             
                         else:
                             style_low_limit = self.all_style_low_limit
@@ -467,8 +467,6 @@ class WeightOptimizer():
                     style_high_limit = style_high_limit + 0.1
 
         weight = np.array([w[0] for w in solution])[:num_holding]
-
-
 
         return weight
 
@@ -717,7 +715,7 @@ class WeightOptimizer():
 
     def qp_method_4(self, date, Sigma_holding_stock, opt_signal):
         """
-        模式四：模型错位, 惩罚未被风格因子解释掉的收益
+        模式四: 模型错位, 惩罚未被风格因子解释掉的收益
         """
         num_holding = Sigma_holding_stock.shape[0]
         holding_stock_list = self.holding_stock_list_dict[date]
@@ -901,6 +899,7 @@ class WeightOptimizer():
             Sigma_holding_stock = sigma_holding[date]
             today_holdings = self.holding_stock_list_dict[date]
             prev_holdings_today = prev_holdings[today_holdings].fillna(0)
+            # print(date, '\n\n', Sigma_holding_stock, '\n\n', prev_holdings)
             weight = qp_method_func(date, Sigma_holding_stock, prev_holdings_today.values)
 
             # append to weight
@@ -1003,6 +1002,3 @@ class WeightOptimizer():
         print("储存数据耗时", time.time() - t0)
 
 
-# if __name__ == '__main__':
-#     calculating_process = WeightOptimizer()
-#     calculating_process.start_weight_optimize_process()

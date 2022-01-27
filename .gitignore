@@ -12,6 +12,7 @@ out/return/
 out/risk_fig/
 out/cov
 out/graph_fig
+out/temp
 
 # test_space 
 test_space*
