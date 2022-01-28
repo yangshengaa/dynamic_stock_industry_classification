@@ -1091,6 +1091,8 @@ class SignalEvaluator:
         self.holding_stats_df = pd.DataFrame()
         self.pool_stats_dict = {}
 
+        self.long_only = False  # True if only long, false means also has short 
+
     def run_signal_eval(self):
         '''
         信号测试主函数
@@ -1149,8 +1151,10 @@ class SignalEvaluator:
         '''
         if long_summary['AlphaRtn']['sum'] > short_summary['AlphaRtn']['sum']:
             return long_summary
-        elif np.isnan(short_summary['AlphaRtn']['sum']):  # 如果是nan, 只有多头，那就返回多头指标
-            return long_summary 
+        # elif np.isnan(short_summary['AlphaRtn']['sum']):  # 如果是nan, 只有多头，那就返回多头指标
+        #     return long_summary 
+        elif self.long_only:  # if only long, then trivially return long series
+            return long_summary
         else:
             return short_summary
 
@@ -1169,8 +1173,9 @@ class SignalEvaluator:
         # 如果没有空头 (例如权重优化部分，全部赋成nan)
         if ((short_signal_df <= 1e-6)  | (short_signal_df.isna())).all().all():
             short_signal_df[:] = np.nan  # convert all to nan 
+            self.long_only = True
 
-        # 回传long，short signa去做风险归因
+        # 回传long，short signal去做风险归因
         self.long_signal_df = long_signal_df
         self.short_signal_df = short_signal_df
         

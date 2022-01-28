@@ -170,34 +170,3 @@ class SingleSignalBacktest:
         self.SignalRecorder = SignalRecorder(self.Evaluator.data_dict,self.signal_name)
         print('----------Testing Finishes {} -----------'.format(self.signal_name))
         return self.SignalRecorder.summary_result_list
-
-
-# if __name__ == '__main__':
-
-#     t0 = time.time()
-#     backtester = SingleSignalBacktest()
-#     data = backtester.get_data()
-#     print('----------数据读取用时{}s-----------\n'.format(int(time.time() - t0)))
-#     signal_name = cfg.signal_name
-#     date_list = list(data['ClosePrice'].columns)
-#     stock_pool = backtester.stock_pool
-#     signal_df = backtester.read_signal_data(signal_name,stock_pool,date_list)
-#     result_list = backtester.run_signal(signal_df, signal_name)
-
-#     ### 存储数据
-#     def save_record(summary_df):
-#         d = cfg.output_path
-#         curr_date = time.strftime('%Y%m%d', time.localtime(time.time()))
-#         # 创建当日文件夹
-#         save_path = '{}/signal_test_file_{}'.format(d, curr_date)
-#         summary_file = '{}/summary.csv'.format(save_path)
-#         try:
-#             final_summary_df = pd.read_csv(summary_file)
-#             del final_summary_df['Unnamed: 0']
-#             final_summary_df = pd.concat([final_summary_df, summary_df])
-#             final_summary_df.to_csv(summary_file)
-#         except FileNotFoundError:
-#             summary_df.to_csv(summary_file)
-
-#     summary_df = pd.DataFrame(np.array([result_list]), columns=cfg.signal_summary_cols)
-#     save_record(summary_df)
