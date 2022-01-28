@@ -9,6 +9,7 @@ Offline Version of PqiDataSdk, containing essential methods to support
 
 # load packages 
 import os
+import pickle
 import numpy as np
 import pandas as pd 
 from typing import List, Dict
@@ -107,6 +108,17 @@ class PqiDataSdkOffline:
         sw_path = os.path.join(PARSED_PATH, 'industry_class', 'SWClass')
         df = pd.read_feather(sw_path).rename(columns={'ticker': 'con_code', 'class_code': 'index_code'})
         return df
+
+    @staticmethod
+    def get_ticker_name_cn() -> Dict[str, str]:
+        """
+        get the chinese name of the tickers. If chinese name not available, use stock code 
+        :return a dictionary, with stock code as key and stock name as value
+        """
+        stock_name_path = os.path.join(PARSED_PATH, 'tickers', 'ticker_name_cn_dict')
+        with open(stock_name_path, 'rb') as f:
+            ticker_name_cn_dict = pickle.load(f)
+        return ticker_name_cn_dict
 
     def get_eod_history(
             self,

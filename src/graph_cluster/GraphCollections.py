@@ -6,19 +6,23 @@ Graph Collections:
 - Random Matrix Theory (RMT) 
 
 RMT in particular would not generate a graph but a community directly.
+
+Many algorithms are discussed in Community Detection for Correlation Matrices by Mel MacMahon and Diego Garlaschelli.
 """
 
 # load packages 
 import os 
 import traceback
 import logging
+from typing import Dict, List
 
 import numpy as np
 import pandas as pd 
-import networkx as nx
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
 
-from typing import Dict, List
+import networkx as nx
+from networkx.algorithms.community import girvan_newman
+
 
 from sklearn.cluster import AgglomerativeClustering
 
@@ -38,7 +42,7 @@ class GeneralGraph:
         # load data 
         self.return_df = return_df
         self.num_clusters = num_clusters
-        self.is_graph = True  # True for AG, MST, PMFG
+        self.is_graph = True  # True for AG, MST, PMFG, False for RMT 
 
         # compute similarity 
         self.similarity_metric = cfg.similarity_metric
@@ -62,11 +66,103 @@ class GeneralGraph:
 # ===================================
 # --------- sub classes -------------
 # ===================================
+class AG(GeneralGraph):
+
+    def __init__(self, return_df: pd.DataFrame, num_clusters: int = 10) -> None:
+        assert self.similarity_metric == 'cor', 'Asset Graph Only Accepts Correlation Matrix'
+        super().__init__(return_df, num_clusters)
+    
+    def build_graph(self) -> nx.Graph: 
+        """ build asset graph """
+        # set up parameters 
+        tau = 2   # as claimed in paper 
+        T = self.return_df.shape[1]
+        C_tau = (np.exp(2 * tau / np.sqrt(T - 3)) - 1) / (np.exp(2 * tau / np.sqrt(T - 3)) + 1)  # threshold 
+
+        # empty graph 
+        g = nx.Graph()
+        tickers = self.similarity_df.index.tolist()
+        for ticker in tickers: 
+            g.add_node(ticker)
+        
+        # filter correlation info 
+        upper_idx = np.triu_indices(self.similarity_df.shape[0], k=1)
+        upper_idx_tuple = np.array(list(zip(*upper_idx)))
+        similarities_np = self.similarity_df.values[upper_idx]
+        for (upper_idx_i, upper_idx_j), cor_ij in zip(upper_idx_tuple, similarities_np):
+            if abs(cor_ij) > C_tau:
+                g.add_edge(tickers[upper_idx_i], tickers[upper_idx_j])
+        
+        return g
+
+
+    def detect_community(self) -> Dict[str, int]:
+        """ Naive: Girvan-Newman """
+        # get graph 
+        g = self.build_graph()
+        
+        # apply girvan-newman 
+        comp = girvan_newman(g)
+
+        # partition till num_clusters 
+        cur_cluster_count = 1 
+        while cur_cluster_count < self.num_clusters:
+            try: 
+                cur_clustering = next(comp)
+                cur_cluster_count = len(cur_clustering)
+            except:
+                logging.warn(f'Maximal partition reached, use {cur_cluster_count} clusters instead')
+
+        # pack into a dict 
+        cur_cluster_label = 0 
+        label_dict = {}
+        for stock_code_set in comp:
+            for stock_code in stock_code_set:
+                label_dict[stock_code] = cur_cluster_label
+            cur_cluster_label += 1
+        
+        return label_dict
+                
+    def visualize(
+        self,
+        g: nx.Graph,
+        label_dict: Dict[str, int],
+        custom_name: str = '',
+        use_cn_name: bool=False
+    ):
+        """ visualize asset graph with community labels """
+        # select subsets
+        nodelist = list(label_dict.keys())
+        node_color = [label_dict[node] for node in nodelist]
+
+        # draw 
+        fig, ax = plt.subplots(figsize=(16, 12))
+        drawing_params = {  # nodes
+            "node_size" : 150,
+            "nodelist" : list(label_dict.keys()),
+            "node_color" : node_color,
+
+            # edges
+            "width" : 0.8,
+            "edge_color" : "gainsboro",
+
+            # labels
+            "with_labels" : True,
+            "font_size" : 3,
+            "cmap" : 'Accent'
+        }
+        if use_cn_name:
+            drawing_params['labels'] = PqiDataSdkOffline.get_ticker_name_cn()
+
+        nx.draw_spring(g, **drawing_params)
+        ax.set_title('Asset Graph for Stocks {}'.format(custom_name), fontsize=20)
+        fig.tight_layout()
+        plt.savefig(os.path.join(cfg.fig_save_path, f'ag_{custom_name}.png'), dpi=800)
 
 class MST(GeneralGraph):
 
-    def __init__(self, return_df: pd.DataFrame) -> None:
-        super().__init__(return_df)
+    def __init__(self, return_df: pd.DataFrame, num_clusters: int = 10) -> None:
+        super().__init__(return_df, num_clusters=num_clusters)
     
     def build_graph(self) -> nx.Graph:
         """ build MST (Kruskal's Algorithm) """
@@ -126,11 +222,11 @@ class MST(GeneralGraph):
         return label_dict
 
     def visualize(
-            self, 
-            g: nx.Graph, 
-            label_dict: Dict[str, int], 
-            custom_name: str='',
-        ):
+        self, 
+        g: nx.Graph, 
+        label_dict: Dict[str, int], 
+        custom_name: str='',
+    ):
         """ visualize MST: advised to plot only a subset of data (e.g. zz1000) """
 
         # select subsets 
@@ -151,10 +247,8 @@ class MST(GeneralGraph):
 
             # labels
             with_labels=True,
-            # labels=label_dict,
             font_size=3,
             cmap='Accent'
-            # cmap='cividis'
         )
         ax.set_title('MST for Stocks {}'.format(custom_name), fontsize=20)
         fig.tight_layout()
