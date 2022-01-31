@@ -75,16 +75,16 @@ lam_vol = 0.5 ** (1/tau_vol)   # 波动率偏误调整 EWMA权重
 # —————— portfolio optimization ——————
 # TODO: use a different signal and ml factor
 # input_signal_df_name = 'xgb_agg.csv'  # 输入信号名字，信号格式为0/1 
-# input_signal_df_name = 'lgb_161227_211231_240_40_202201240953_Regressor_zz1000_fmv_100_1/long_0'
-input_signal_df_name = 'lr_bm_161227_211231_240_40_202201241841_Regressor_linear_0_rolling_zz1000_fmv_100_1/long_0'
+input_signal_df_name = 'lgb_161227_211231_240_40_202201240953_Regressor_zz1000_fmv_100_1/long_0'
+# input_signal_df_name = 'lr_bm_161227_211231_240_40_202201241841_Regressor_linear_0_rolling_zz1000_fmv_100_1/long_0'
 obj_func = 'ret_var' # 目标函数：min_var (最小方差)/ ret_var (均值-方差优化)
 
 weight_low = 0.001   # 权重下限
 weight_high = 0.05  # 权重上限
 
 # ml_factor_name = 'xgb_161227_201231_240_40_202109090912_Regressor'
-# ml_factor_name = 'lgb_161227_211231_240_40_202201240953_Regressor'
-ml_factor_name = 'lr_bm_161227_211231_240_40_202201241841_Regressor_linear_0_rolling'
+ml_factor_name = 'lgb_161227_211231_240_40_202201240953_Regressor'
+# ml_factor_name = 'lr_bm_161227_211231_240_40_202201241841_Regressor_linear_0_rolling'
 
 benchmark_index = 'zz1000'  # 风格行业中性约束的基准指数
 
@@ -97,9 +97,9 @@ ind_low_limit = -0.1 # 行业中性因子敞口
 ind_high_limit = 0.1
 
 turnover_constraint = True  # 换手率约束
-turnover_limit = 0.9
+turnover_limit = 0.4
 
-penalty_lambda = 1  # 风险厌恶系数   # TODO: 不同的风险系数
+penalty_lambda = 10  # 风险厌恶系数   # TODO: 不同的风险系数
 penalty_theta = 0.1  # 换仓惩罚  # 仅在method 2 中使用 # 如果用的是0.015/2， 则该项刚好为实盘cost
 penalty_nu = 100     # 风格暴露惩罚  # 仅在method 3 中使用
 penalty_xi = 1       # 模型错位风险惩罚  # 仅在method 4 中使用

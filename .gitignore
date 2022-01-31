@@ -60,7 +60,9 @@ src/graph_cluster/sub2vec
 src/graph_cluster/subgnn
 
 
-
 # python files 
 __pycache__/
 .gitignore
+
+# docker 
+Dockerfile

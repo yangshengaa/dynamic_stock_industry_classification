@@ -30,6 +30,13 @@ from sklearn.cluster import AgglomerativeClustering
 from src.data_ingestion.PqiDataSdk_Offline import PqiDataSdkOffline
 import src.graph_cluster.config as cfg
 from src.graph_cluster.similarity_measures import *
+from src.graph_cluster.CommunityDetectionUtils import (
+    Node2Vec,
+    Sub2Vec
+)
+
+# set chinese font 
+CN_FONT = 'Heiti TC'
 
 
 # =================================== 
@@ -56,7 +63,7 @@ class GeneralGraph:
     def build_graph(self):
         raise NotImplementedError()
     
-    def detect_community(self) -> Dict[str, int]:
+    def detect_community(self, g:nx.Graph=None) -> Dict[str, int]:
         raise NotImplementedError()
 
     def visualize(self):
@@ -69,13 +76,14 @@ class GeneralGraph:
 class AG(GeneralGraph):
 
     def __init__(self, return_df: pd.DataFrame, num_clusters: int = 10) -> None:
-        assert self.similarity_metric == 'cor', 'Asset Graph Only Accepts Correlation Matrix'
         super().__init__(return_df, num_clusters)
+        self.clustering_type = cfg.clustering_type
+        assert self.similarity_metric == 'cor', 'Asset Graph Only Accepts Correlation Matrix'  
     
     def build_graph(self) -> nx.Graph: 
         """ build asset graph """
         # set up parameters 
-        tau = 2   # as claimed in paper 
+        tau = 10   # 2 in the original paper, but for T = 240, this may be better
         T = self.return_df.shape[1]
         C_tau = (np.exp(2 * tau / np.sqrt(T - 3)) - 1) / (np.exp(2 * tau / np.sqrt(T - 3)) + 1)  # threshold 
 
@@ -95,31 +103,22 @@ class AG(GeneralGraph):
         
         return g
 
-
-    def detect_community(self) -> Dict[str, int]:
-        """ Naive: Girvan-Newman """
+    def detect_community(self, g: nx.Graph=None) -> Dict[str, int]:
+        """ Naive: Node2Vec + KMeans """
         # get graph 
-        g = self.build_graph()
+        if g is None:
+            g = self.build_graph()
         
-        # apply girvan-newman 
-        comp = girvan_newman(g)
-
-        # partition till num_clusters 
-        cur_cluster_count = 1 
-        while cur_cluster_count < self.num_clusters:
-            try: 
-                cur_clustering = next(comp)
-                cur_cluster_count = len(cur_clustering)
-            except:
-                logging.warn(f'Maximal partition reached, use {cur_cluster_count} clusters instead')
-
-        # pack into a dict 
-        cur_cluster_label = 0 
-        label_dict = {}
-        for stock_code_set in comp:
-            for stock_code in stock_code_set:
-                label_dict[stock_code] = cur_cluster_label
-            cur_cluster_label += 1
+        # clustering model
+        if self.clustering_type == 'sub2vec':
+            clustering_model = Sub2Vec
+        elif self.clustering_type == 'node2vec':
+            clustering_model = Node2Vec
+        else:
+            raise NotImplementedError('Not Yet Implemented')
+        model = clustering_model(g, num_clusters=self.num_clusters)
+        model.generate_embeddings()
+        label_dict = model.get_community()
         
         return label_dict
                 
@@ -153,6 +152,7 @@ class AG(GeneralGraph):
         }
         if use_cn_name:
             drawing_params['labels'] = PqiDataSdkOffline.get_ticker_name_cn()
+            drawing_params['font_family'] = CN_FONT
 
         nx.draw_spring(g, **drawing_params)
         ax.set_title('Asset Graph for Stocks {}'.format(custom_name), fontsize=20)
@@ -197,7 +197,7 @@ class MST(GeneralGraph):
                     break        
         return g
 
-    def detect_community(self) -> Dict[str, int]:
+    def detect_community(self, g: nx.Graph=None) -> Dict[str, int]:
         """ 
         Complete Linkage Algorithm. Note that this does not depend on built graph 
         note that single linkage seems not working for AgglomerativeClustering in precomputed mode
@@ -226,6 +226,7 @@ class MST(GeneralGraph):
         g: nx.Graph, 
         label_dict: Dict[str, int], 
         custom_name: str='',
+        use_cn_name: bool=False
     ):
         """ visualize MST: advised to plot only a subset of data (e.g. zz1000) """
 
@@ -234,22 +235,27 @@ class MST(GeneralGraph):
         node_color = [label_dict[node] for node in nodelist]
         
         fig, ax = plt.subplots(figsize=(16, 12))
-        nx.draw_spring(
-            g, 
-            # nodes 
-            node_size=150, 
-            nodelist=list(label_dict.keys()),
-            node_color=node_color,
+        drawing_params = {
+            # nodes
+            'node_size': 150,
+            'nodelist': list(label_dict.keys()),
+            'node_color': node_color,
 
-            # edges 
-            width=0.8, 
-            edge_color="gainsboro",
+            # edges
+            'width': 0.8,
+            'edge_color': "gainsboro",
 
             # labels
-            with_labels=True,
-            font_size=3,
-            cmap='Accent'
-        )
+            'with_labels': True,
+            'font_size': 3,
+            'cmap': 'Accent'
+        }
+        if use_cn_name:
+            drawing_params['labels'] = PqiDataSdkOffline.get_ticker_name_cn()
+            drawing_params['font_family'] = CN_FONT
+        
+        nx.draw_spring(g, **drawing_params)
+
         ax.set_title('MST for Stocks {}'.format(custom_name), fontsize=20)
         fig.tight_layout()
         plt.savefig(os.path.join(cfg.fig_save_path, f'mst_{custom_name}.png'), dpi=800)

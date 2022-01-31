@@ -329,6 +329,7 @@ class WeightOptimizer():
 
         # start loop
         status = False
+        fail_to_constrain = False
         while not status:  
             # deep copy 
             G = matrix(G_raw)
@@ -337,45 +338,6 @@ class WeightOptimizer():
             b = matrix(b_raw)
             P = matrix(P_raw)
             q = matrix(q_raw)
-
-            # if 'min_var' in self.obj_func:
-            
-            #     P = 2* matrix(Sigma_holding_stock)
-            #     q = matrix(np.zeros(num_holding))
-
-            # elif 'ret_var' in self.obj_func:  # 最大化经风险调整后收益
-            #     P = 2* matrix(Sigma_holding_stock)
-
-            #     # 预测收益率
-            #     current_holding_pred_return = self.pred_ret_df[date][holding_stock_list].fillna(0) # TODO: 改进处理nan的方法
-            #     q = matrix(-current_holding_pred_return / self.penalty_lambda)
-            # else:
-            #     print('Cannot support this objective function')
-            #     break
-
-            # # 约束条件：持仓权重上下限
-            # G = matrix(np.vstack((np.identity(num_holding), -np.identity(num_holding))))
-            # h = matrix(np.hstack((np.full(num_holding, weight_high), np.full(num_holding, -weight_low))))
-            # #h = matrix(np.hstack((np.ones(num_holding), np.zeros(num_holding))))
-            # A = matrix(np.ones(num_holding), (1,num_holding))
-            # b = matrix(1.0)
-            
-            # 约束条件：行业风格中性
-            
-            # benchmark_stock_list = self.benchmark_index_list_dict[date]
-
-            # X_style = pd.DataFrame()
-            # for class_name in self.class_factor_dict_adj.keys():
-            #     # print(class_name)
-            #     # print(self.class_factor_dict_adj[class_name][date])
-
-            #     # print()
-            #     X_style[class_name] = self.class_factor_dict_adj[class_name][date]
-
-            # X_style_holding = X_style.T[holding_stock_list].fillna(0) # TODO: 改进处理nan的方法
-            # X_ind_holding = self.ind_df.T[holding_stock_list]
-            # X_style_benchmark = X_style.T[benchmark_stock_list].fillna(0)
-            # benchmark_current_weight = self.benchmark_index_weight[date][self.benchmark_index_weight[date].notna()]
 
             # 风格中性
             if cfg.style_neutralize:
@@ -407,7 +369,6 @@ class WeightOptimizer():
                 previous_day_signal = prev_holdings # opt_signal.shift(1, axis = 1).fillna(0)[date][holding_stock_list].values
                 fixed_turnover = 1 - previous_day_signal.sum()
 
-
                 # create n extra variables
                 objective_turnover = turnover_limit - fixed_turnover
 
@@ -427,7 +388,6 @@ class WeightOptimizer():
                 status = 'optimal' in sol['status']
             except:
                 # traceback_msg = traceback.format_exc()
-                
                 status = False
 
             if not status:
@@ -441,11 +401,7 @@ class WeightOptimizer():
                         if turnover_limit >= 2.0 :
                             # 所有约束失败
                             status = True
-                            # print(date)
-                            logging.warning(f'{date}: fail to constraint')
-                            # print(traceback_msg)
-                            # weight = np.ones(num_holding) / num_holding
-                            # return weight
+                            fail_to_constrain = True
                             
                         else:
                             style_low_limit = self.all_style_low_limit
@@ -467,6 +423,12 @@ class WeightOptimizer():
                     style_high_limit = style_high_limit + 0.1
 
         weight = np.array([w[0] for w in solution])[:num_holding]
+
+        # adjust weight (prevent negative weights when fail to constrain)
+        if fail_to_constrain:
+            logging.warn(f'{date} fail to constrain: discard negative weights')
+            weight[weight < 0] = 0 
+            weight = weight / weight.sum()  # re-normalize the rest 
 
         return weight
 
