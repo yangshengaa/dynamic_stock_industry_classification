@@ -12,8 +12,8 @@ Many algorithms are discussed in Community Detection for Correlation Matrices by
 
 # load packages 
 import os 
-import traceback
 import logging
+import traceback
 from typing import Dict, List
 
 import numpy as np
@@ -21,10 +21,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 import networkx as nx
-from networkx.algorithms.community import girvan_newman
 
+import planarity
 
-from sklearn.cluster import AgglomerativeClustering
+from sklearn.cluster import AgglomerativeClustering, SpectralClustering
 
 # load files 
 from src.data_ingestion.PqiDataSdk_Offline import PqiDataSdkOffline
@@ -33,6 +33,12 @@ from src.graph_cluster.similarity_measures import *
 from src.graph_cluster.CommunityDetectionUtils import (
     Node2Vec,
     Sub2Vec
+)
+
+# logging config 
+logging.basicConfig(
+    format='%(asctime)s %(levelname)s: %(message)s', 
+    # level=logging.INFO
 )
 
 # set chinese font 
@@ -50,6 +56,7 @@ class GeneralGraph:
         self.return_df = return_df
         self.num_clusters = num_clusters
         self.is_graph = True  # True for AG, MST, PMFG, False for RMT 
+        self.clustering_type = cfg.clustering_type
 
         # compute similarity 
         self.similarity_metric = cfg.similarity_metric
@@ -60,14 +67,108 @@ class GeneralGraph:
         similarity_df = eval(f'{self.similarity_metric}(self.return_df)')
         self.similarity_df = similarity_df        
     
-    def build_graph(self):
+    def build_graph(self) -> nx.Graph:
         raise NotImplementedError()
     
     def detect_community(self, g:nx.Graph=None) -> Dict[str, int]:
-        raise NotImplementedError()
+        """ detect communities """
+        # pick type and run 
+        if self.clustering_type == 'single_linkage':
+            # single linkage does not depend on graph, so no graph needed
+            # compute distance frm similarity
+            logging.warning('distance measures in single linkage only take correlation')
+            # assumption is that nan means uncorrelated
+            distance_df = np.sqrt(2 * (1 - self.similarity_df.fillna(0)))
+            # if fillna on diag, make sure to turn it back to 0
+            distance_df = distance_df - np.diag(np.diag(distance_df))
 
-    def visualize(self):
-        raise NotImplementedError()
+            # clustering
+            clustering = AgglomerativeClustering(
+                n_clusters=self.num_clusters,
+                affinity='precomputed',
+                linkage='complete'
+            ).fit(distance_df)
+
+            # output labels
+            community_labels = clustering.labels_
+            label_dict = dict(zip(self.similarity_df.index, community_labels))
+
+        
+        elif self.clustering_type == 'spectral':
+            clustering = SpectralClustering(
+                n_clusters=self.num_clusters,
+                affinity='precomputed',
+                assign_labels='discretize'
+            ).fit(nx.to_numpy_array(g))
+
+            # output labels 
+            community_labels = clustering.labels_
+            label_dict = dict(zip(self.similarity_df.index, community_labels))
+        
+        elif self.clustering_type == 'node2vec':
+            model = Node2Vec(g, num_clusters=self.num_clusters)
+            model.generate_embeddings()
+            label_dict = model.get_community()
+
+        elif self.clustering_type == 'sub2vec':
+            model = Sub2Vec(g, num_clusters=self.num_clusters)
+            model.generate_embeddings()
+            label_dict = model.get_community()
+
+        else: 
+            raise NotImplementedError(f'{self.clustering_type} not supported')
+        
+        return label_dict
+
+    def visualize(
+        self,
+        g: nx.Graph,
+        label_dict: Dict[str, int],
+        custom_name: str = '',
+        use_cn_name: bool = False
+    ):
+        """ visualize graph with community labels """
+        # select subsets
+        nodelist = list(label_dict.keys())
+        node_color = [label_dict[node] for node in nodelist]
+
+        # draw
+        fig, ax = plt.subplots(figsize=(16, 12))
+        drawing_params = {  # nodes
+            "node_size": 150,
+            "nodelist": list(label_dict.keys()),
+            "node_color": node_color,
+
+            # edges
+            "width": 0.8,
+            "edge_color": "gainsboro",
+
+            # labels
+            "with_labels": True,
+            "font_size": 3,
+            "cmap": 'Accent'
+        }
+        if use_cn_name:
+            # extract cn names 
+            all_labels = PqiDataSdkOffline.get_ticker_name_cn()
+            selected_labels = {}
+            for ticker, label in all_labels.items():
+                if ticker in nodelist:
+                    selected_labels[ticker] = label
+            drawing_params['labels'] = selected_labels
+            drawing_params['font_family'] = CN_FONT
+
+        nx.draw_spring(g, **drawing_params)
+        ax.set_title(
+            f'{self.__class__.__name__} {self.clustering_type} for Stocks {custom_name}', 
+            fontsize=20
+        )
+        fig.tight_layout()
+        plt.savefig(
+            os.path.join(
+                cfg.fig_save_path, f'{self.__class__.__name__}_{self.clustering_type}_{custom_name}.png'),
+            dpi=800
+        )
     
 
 # ===================================
@@ -77,7 +178,6 @@ class AG(GeneralGraph):
 
     def __init__(self, return_df: pd.DataFrame, num_clusters: int = 10) -> None:
         super().__init__(return_df, num_clusters)
-        self.clustering_type = cfg.clustering_type
         assert self.similarity_metric == 'cor', 'Asset Graph Only Accepts Correlation Matrix'  
     
     def build_graph(self) -> nx.Graph: 
@@ -102,62 +202,6 @@ class AG(GeneralGraph):
                 g.add_edge(tickers[upper_idx_i], tickers[upper_idx_j])
         
         return g
-
-    def detect_community(self, g: nx.Graph=None) -> Dict[str, int]:
-        """ Naive: Node2Vec + KMeans """
-        # get graph 
-        if g is None:
-            g = self.build_graph()
-        
-        # clustering model
-        if self.clustering_type == 'sub2vec':
-            clustering_model = Sub2Vec
-        elif self.clustering_type == 'node2vec':
-            clustering_model = Node2Vec
-        else:
-            raise NotImplementedError('Not Yet Implemented')
-        model = clustering_model(g, num_clusters=self.num_clusters)
-        model.generate_embeddings()
-        label_dict = model.get_community()
-        
-        return label_dict
-                
-    def visualize(
-        self,
-        g: nx.Graph,
-        label_dict: Dict[str, int],
-        custom_name: str = '',
-        use_cn_name: bool=False
-    ):
-        """ visualize asset graph with community labels """
-        # select subsets
-        nodelist = list(label_dict.keys())
-        node_color = [label_dict[node] for node in nodelist]
-
-        # draw 
-        fig, ax = plt.subplots(figsize=(16, 12))
-        drawing_params = {  # nodes
-            "node_size" : 150,
-            "nodelist" : list(label_dict.keys()),
-            "node_color" : node_color,
-
-            # edges
-            "width" : 0.8,
-            "edge_color" : "gainsboro",
-
-            # labels
-            "with_labels" : True,
-            "font_size" : 3,
-            "cmap" : 'Accent'
-        }
-        if use_cn_name:
-            drawing_params['labels'] = PqiDataSdkOffline.get_ticker_name_cn()
-            drawing_params['font_family'] = CN_FONT
-
-        nx.draw_spring(g, **drawing_params)
-        ax.set_title('Asset Graph for Stocks {}'.format(custom_name), fontsize=20)
-        fig.tight_layout()
-        plt.savefig(os.path.join(cfg.fig_save_path, f'ag_{custom_name}.png'), dpi=800)
 
 class MST(GeneralGraph):
 
@@ -197,65 +241,46 @@ class MST(GeneralGraph):
                     break        
         return g
 
-    def detect_community(self, g: nx.Graph=None) -> Dict[str, int]:
+class PMFG(GeneralGraph):
+
+    def __init__(self, return_df: pd.DataFrame, num_clusters: int = 10) -> None:
+        super().__init__(return_df, num_clusters)
+    
+    def build_graph(self) -> nx.Graph:
         """ 
-        Complete Linkage Algorithm. Note that this does not depend on built graph 
-        note that single linkage seems not working for AgglomerativeClustering in precomputed mode
-        
-        :return dict[stock_code, community label]
+        similar to MST, but further add edges provided that the planarity is maintained.
+
+        Reference: https://gmarti.gitlab.io/networks/2018/06/03/pmfg-algorithm.html
         """
-        # compute distance frm similarity 
-        logging.warning('distance measures in mst only take correlation')
-        distance_df = np.sqrt(2 * (1 - self.similarity_df.fillna(0)))   # assumption is that nan means uncorrelated 
-        distance_df = distance_df - np.diag(np.diag(distance_df))  # if fillna on diag, make sure to turn it back to 0
+        # empty graph 
+        g = nx.Graph()
+        tickers = self.similarity_df.index.tolist()
+        num_tickers = len(tickers)
+        for ticker in tickers:
+            g.add_node(ticker)
 
-        # clustering
-        clustering = AgglomerativeClustering(
-            n_clusters=self.num_clusters,
-            affinity='precomputed',
-            linkage='complete'
-        ).fit(distance_df)
+        # sort similariies in descending order and get stock code pairs
+        upper_idx = np.triu_indices(self.similarity_df.shape[0], k=1)
+        upper_idx_tuple = np.array(list(zip(*upper_idx)))
+        similarities_np = self.similarity_df.values[upper_idx]
+        similarities_np[np.isnan(similarities_np)] = - 999  # let nan be the least ones
+        sorted_pair_idx = upper_idx_tuple[np.argsort(similarities_np)[::-1]]
+        sorted_pair_stock_code = [(tickers[i1], tickers[i2]) for i1, i2 in sorted_pair_idx]
 
-        # output labels
-        community_labels = clustering.labels_
-        label_dict = dict(zip(self.similarity_df.index, community_labels))
-        return label_dict
+        # count na
+        na_stock_counts = (self.similarity_df.isna().mean() > cfg.na_threshold).sum()
 
-    def visualize(
-        self, 
-        g: nx.Graph, 
-        label_dict: Dict[str, int], 
-        custom_name: str='',
-        use_cn_name: bool=False
-    ):
-        """ visualize MST: advised to plot only a subset of data (e.g. zz1000) """
+        # add edges 
+        logging.warn(
+            'For performance issue, we adjust number of nodes on PMFG to be less than 3(N - 2)'
+        )
+        for node_1, node_2 in sorted_pair_stock_code:
+            g.add_edge(node_1, node_2)
+            if not planarity.is_planar(g): 
+                g.remove_edge(node_1, node_2)
+            
+            # early stopping # * different from 3(N - 2)
+            if g.number_of_edges() == int(2.7 * (num_tickers - 2 - na_stock_counts)): # cut na stocks
+                break 
 
-        # select subsets 
-        nodelist = list(label_dict.keys())
-        node_color = [label_dict[node] for node in nodelist]
-        
-        fig, ax = plt.subplots(figsize=(16, 12))
-        drawing_params = {
-            # nodes
-            'node_size': 150,
-            'nodelist': list(label_dict.keys()),
-            'node_color': node_color,
-
-            # edges
-            'width': 0.8,
-            'edge_color': "gainsboro",
-
-            # labels
-            'with_labels': True,
-            'font_size': 3,
-            'cmap': 'Accent'
-        }
-        if use_cn_name:
-            drawing_params['labels'] = PqiDataSdkOffline.get_ticker_name_cn()
-            drawing_params['font_family'] = CN_FONT
-        
-        nx.draw_spring(g, **drawing_params)
-
-        ax.set_title('MST for Stocks {}'.format(custom_name), fontsize=20)
-        fig.tight_layout()
-        plt.savefig(os.path.join(cfg.fig_save_path, f'mst_{custom_name}.png'), dpi=800)
+        return g

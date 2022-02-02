@@ -23,8 +23,8 @@ na_threshold = 0.6
 #       graph specifics 
 # ===========================
 
-# 1. Asset Graph 
-clustering_type = 'sub2vec'    # supporting node2vec and sub2vec
+ # supporting single_linkage, spectral, node2vec, sub2vec, 
+clustering_type = 'single_linkage'   
 
 
 # =======================================
