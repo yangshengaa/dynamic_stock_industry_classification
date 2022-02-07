@@ -62,7 +62,11 @@ src/graph_cluster/subgnn
 
 # python files 
 __pycache__/
+.ipynb_checkpoints/
 .gitignore
 
 # docker 
 Dockerfile
+report.*
+report/
+submission.json

@@ -30,10 +30,8 @@ from sklearn.cluster import AgglomerativeClustering, SpectralClustering
 from src.data_ingestion.PqiDataSdk_Offline import PqiDataSdkOffline
 import src.graph_cluster.config as cfg
 from src.graph_cluster.similarity_measures import *
-from src.graph_cluster.CommunityDetectionUtils import (
-    Node2Vec,
-    Sub2Vec
-)
+from src.graph_cluster.CommunityDetectionUtils import Node2Vec, Sub2Vec
+
 
 # logging config 
 logging.basicConfig(
@@ -284,3 +282,11 @@ class PMFG(GeneralGraph):
                 break 
 
         return g
+
+class RMT(GeneralGraph):
+    
+    def __init__(self, return_df: pd.DataFrame, num_clusters: int = 10) -> None:
+        super().__init__(return_df, num_clusters)
+        self.is_graph = False  # for RMT 
+
+    

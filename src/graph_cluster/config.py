@@ -26,6 +26,8 @@ na_threshold = 0.6
  # supporting single_linkage, spectral, node2vec, sub2vec, 
 clustering_type = 'single_linkage'   
 
+# filter information {0: raw, 1: keep large eigenvalues; 2: keep large but market mode}
+filter_mode = 1 
 
 # =======================================
 # ------ community detection utils ------
