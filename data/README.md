@@ -19,3 +19,5 @@ There are three folders:
   - factor: factor for investing;
   - risk_factor: for estimating covariance matrix;
   - support_factor: factors that support computing factors to invest;
+  - ml_factor: predicted stock returns, the machine learning outputs;
+  - dynamic_ind: the dynamic industry classification eod features.

@@ -293,9 +293,10 @@ class Sub2Vec:
         return tagged_document_list
 
 # ================================================
-# ---------------- ModifiedLouvain ---------------
+# -------------------- RMT -----------------------
 # ================================================
 
+# Modified Louvain
 # the followings are modified from https://github.com/taynaud/python-louvain
 
 class LouvainGraphStatus(object):
@@ -386,7 +387,7 @@ class ModifiedLouvain:
         ) -> pd.DataFrame:
         """ 
         filter information: 
-        - 0: filtered self-loops 
+        - 0: filtered self-loops (raw)
         - 1: keep large eigenvalues only 
         - 2: keep large eigenvalues except the market mode 
 
@@ -404,13 +405,13 @@ class ModifiedLouvain:
             filtered_df = similarity_df
         else:
             # create mask
-            na_pos = similarity_df.notna() 
+            na_pos = similarity_df.notna().astype(int)
             na_mask = na_pos / na_pos 
             # eigendecomp
             eig_values, eig_vectors = np.linalg.eig(similarity_df.fillna(0))
             N = similarity_df.shape[0]  # number of assets
             if N > T:
-                logging.warning(
+                logging.warn(
                     'N > T: statistically unstable in giving the eig value upper bound. Use it anyways'
                 )
             eig_value_plus = (1 + np.sqrt(N / T)) ** 2

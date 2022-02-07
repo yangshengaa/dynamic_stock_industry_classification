@@ -30,7 +30,7 @@ from sklearn.cluster import AgglomerativeClustering, SpectralClustering
 from src.data_ingestion.PqiDataSdk_Offline import PqiDataSdkOffline
 import src.graph_cluster.config as cfg
 from src.graph_cluster.similarity_measures import *
-from src.graph_cluster.CommunityDetectionUtils import Node2Vec, Sub2Vec
+from src.graph_cluster.CommunityDetectionUtils import Node2Vec, Sub2Vec, ModifiedLouvain
 
 
 # logging config 
@@ -58,12 +58,19 @@ class GeneralGraph:
 
         # compute similarity 
         self.similarity_metric = cfg.similarity_metric
+        self.filter_mode = cfg.filter_mode
         self.compute_similarity()
     
     def compute_similarity(self):
         """ compute similarity from return_df """
+        # compute raw similarity 
         similarity_df = eval(f'{self.similarity_metric}(self.return_df)')
-        self.similarity_df = similarity_df        
+        # filter information 
+        filtered_similarity_df = ModifiedLouvain.filter_information(
+            similarity_df, self.filter_mode, T=self.return_df.shape[0]
+        )
+
+        self.similarity_df = filtered_similarity_df        
     
     def build_graph(self) -> nx.Graph:
         raise NotImplementedError()
@@ -158,13 +165,13 @@ class GeneralGraph:
 
         nx.draw_spring(g, **drawing_params)
         ax.set_title(
-            f'{self.__class__.__name__} {self.clustering_type} for Stocks {custom_name}', 
+            f'{self.__class__.__name__} {self.clustering_type} filter mode {self.filter_mode} for Stocks {custom_name}', 
             fontsize=20
         )
         fig.tight_layout()
         plt.savefig(
             os.path.join(
-                cfg.fig_save_path, f'{self.__class__.__name__}_{self.clustering_type}_{custom_name}.png'),
+                cfg.fig_save_path, f'{self.__class__.__name__}_{self.clustering_type}_{self.filter_mode}_{custom_name}.png'),
             dpi=800
         )
     
@@ -283,10 +290,10 @@ class PMFG(GeneralGraph):
 
         return g
 
-class RMT(GeneralGraph):
+# class RMT(GeneralGraph):
     
-    def __init__(self, return_df: pd.DataFrame, num_clusters: int = 10) -> None:
-        super().__init__(return_df, num_clusters)
-        self.is_graph = False  # for RMT 
+#     def __init__(self, return_df: pd.DataFrame, num_clusters: int = 10) -> None:
+#         super().__init__(return_df, num_clusters)
+#         self.is_graph = False  # for RMT 
 
     

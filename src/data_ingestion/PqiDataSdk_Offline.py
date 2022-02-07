@@ -212,3 +212,107 @@ class PqiDataSdkOffline:
         """
         feature_path = os.path.join(FEATURE_PATH, des, f'eod_{feature_name}')
         feature_df.reset_index().to_feather(feature_path)
+
+    # ===================================
+    # -------- Index Mask ---------------
+    # ===================================
+
+    # TODO: change corresponding parts in backtest and factor comb
+    def get_stock_weight(
+            self,
+            index: str,
+            trade_dates: List[str] = None
+        ) -> pd.DataFrame:
+        """
+        get stock weights of an given index within a timeframe 
+        :param index
+        :param list of trade dates
+        :return: a dataframe, stock codes as index, dates as columns, and stock weights as values
+        """
+        # convert name to code 
+        index_to_weight = {
+            'zz500': '000905',
+            'zz1000': '000852',
+            'zzall': '000985',
+            'sz50': '000016',
+            'hs300': '000300'
+        }
+        # specify path 
+        index_path = os.path.join(PARSED_PATH, 'index_stock_weight', index_to_weight[index])
+        # retrieve 
+        index_data = pd.read_feather(index_path).set_index("index")
+
+        # select trade dates 
+        if trade_dates is None:
+            trade_dates = self.trade_dates  # all dates
+        df_selected = index_data.loc[:, trade_dates]
+        return df_selected
+
+    def get_index_mask(
+            self,
+            index_list: List[str]
+        ):
+        """
+        retrieve index member stock info, 1 if is a member, and nan otherwise
+        :param index_list: a list of stock index codes 
+        :return a nan mask
+        """
+        agg_index_mask = False
+        # read and combine different masks
+        for index in index_list:
+            index_weight = self.get_stock_weight(index)
+            index_mask = index_weight.notna()
+            agg_index_mask = agg_index_mask | index_mask
+        # convert to 1 and nans
+        agg_index_mask = agg_index_mask.astype(int) / agg_index_mask.astype(int)
+        return agg_index_mask       
+
+    # ==========================================
+    # -------- Dynamic Industyr IO -------------
+    # ==========================================
+
+    def ind_feature_path_encoder(self, ind_name: str, des: str) -> str:
+        """ 
+        unified feature read/write path encoder 
+        """
+        feature_path = os.path.join(FEATURE_PATH, des, f'ind_{ind_name}')
+        return feature_path
+
+    def save_ind_feature(
+         self,
+         ind_name: str,
+         des: str = 'dynamic_ind',
+         dates: List[str] = []
+     ) -> pd.DataFrame:
+        """
+        read ind info by name 
+
+        :param ind_name: the name fo the feature 
+        :param des: the destination to retrieve factor. default to 'dynamic_ind'
+        :param dates: the dates of the list. If empty, read all dates available
+        :return a feature dataframe 
+        """
+        feature_path = self.ind_feature_path_encoder(ind_name, des)
+
+        # specify columns
+        columns_to_read = dates
+        if len(columns_to_read) == 0:
+            columns_to_read = self.trade_dates
+        columns_to_read = np.insert(columns_to_read, 0, 'index').tolist()
+
+        # retrieve
+        ind_df = pd.read_feather(
+            feature_path, columns=columns_to_read
+        ).set_index('index')
+        return ind_df
+
+    def read_ind_feature(self, ind_name: str, ind_df: pd.DataFrame, des: str='dynamic_ind') -> None:
+        """ 
+        save computed features. All named f'eod_{ind_name}'
+        
+        :param ind_name: the name of the feature 
+        :param feature_df: dataframe
+        :param des: the destination of the path. default to 'dynamic_ind'
+        """
+        feature_path = os.path.join(FEATURE_PATH, des, f'ind_{ind_name}')
+        ind_df.reset_index().to_feather(feature_path)

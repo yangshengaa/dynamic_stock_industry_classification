@@ -192,6 +192,7 @@ class FactorReturnGenerator(object):
         f_2 = []  # 存放特质收益率
         ticker_total_lst = []  # 存放非nan的ticker
         X = self.ind_df.copy()  # 外层copy一次，循环内自己换factor_name
+        # TODO: add dynamic industry here 
 
         has_value_dates = []  # store dates that have values # * for local data only 
         for t in range(len(self.date_list) - shift_step):            
