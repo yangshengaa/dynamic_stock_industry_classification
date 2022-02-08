@@ -52,6 +52,10 @@ class FactorReturnGenerator(object):
         self.tickers = list(self.eod_data_dict["ClosePrice"].index)  
         self.date_list = list(self.eod_data_dict['ClosePrice'].columns)
         self.index_code_to_name = cfg.index_code_to_name
+
+        # dynamic industry 
+        self.use_dynamic_ind = cfg.use_dynamic_ind
+        self.dynamic_ind_name = cfg.dynamic_ind_name
         
         # mode for return calculations 收益率回看模式
         self.ret_df_dict = {}    
@@ -86,6 +90,8 @@ class FactorReturnGenerator(object):
         self.factor_return_df_dict = {}  # 存放大类风格因子值的收益 aggregated style factor returns
         self.idio_return_df_dict = {}    # 存放特质收益 idiosyncratic returns
      
+    
+    # =================== factors ========================
 
     def read_factor_data(self, feature_name, tickers, date_list):
         """ 
@@ -105,19 +111,17 @@ class FactorReturnGenerator(object):
         )
         return factor_df
 
-
     def load_factor_data(self):
         """
         load all style factors
         """
         for name in self.class_name:
             self.class_factor_dict_adj[name] = self.read_factor_data(name, self.tickers , self.date_list)
-    
 
-    def get_ind_date(self):
-        """ retrieve industry data """
-        # 读取行业数据
-        # TODO: 滚动变化的行业？
+    # ======================= industry =========================
+
+    def get_ind_data(self):
+        """ retrieve static industry data """
         # TODO: add others (代码见low_fre_alpha_generator/process_raw/neutralize_factor)
         # TODO: add country factor? (CNE5)
         ind_members = self.myconnector.get_sw_members().drop_duplicates(subset=['con_code'])[["index_code", "con_code"]]
@@ -131,7 +135,14 @@ class FactorReturnGenerator(object):
         self.ind_df = self.ind_df.fillna(0)
         self.ind_df.columns = ["ind_" + str(i + 1) for i in range(len(self.ind_df.columns))]
 
+    def get_dynamic_ind_data(self) -> pd.DataFrame:
+        """ get dynamic industry data """
+        ind_df = self.myconnector.read_ind_feature(self.dynamic_ind_name)
+        ind_df_selected = ind_df[self.trade_dates]
+        self.ind_df = ind_df_selected
     
+    # ==================== index ========================
+
     def get_stock_weight(self, index: str) -> pd.DataFrame:
         """
         get stock weights of an given index within a timeframe 
@@ -171,6 +182,7 @@ class FactorReturnGenerator(object):
         agg_index_mask = agg_index_mask.astype(int) / agg_index_mask.astype(int)
         return agg_index_mask        
 
+    # ====================== calc ret =========================
 
     def calc_fac_ret(self, return_type):
         """ 计算风格因子收益率 (与riskplot平台不同，此处用的是WLS) """
@@ -191,7 +203,15 @@ class FactorReturnGenerator(object):
         f_1 = []  # 存放因子收益率
         f_2 = []  # 存放特质收益率
         ticker_total_lst = []  # 存放非nan的ticker
-        X = self.ind_df.copy()  # 外层copy一次，循环内自己换factor_name
+
+        # static industry: copy once and replace columns in the loop 
+        if not self.use_dynamic_ind:
+            X = self.ind_df.copy()  # 外层copy一次，循环内自己换factor_name
+        else:
+            sample_cross_section = self.ind_df.iloc[:, 0]
+            ind_labels = sorted(list(set(sample_cross_section.tolist())))
+            map_dict = dict(zip(ind_labels, np.eye(len(ind_labels), dtype=int)))
+
         # TODO: add dynamic industry here 
 
         has_value_dates = []  # store dates that have values # * for local data only 
@@ -199,6 +219,15 @@ class FactorReturnGenerator(object):
             # prepare data
             Y = ret_df.iloc[:, t + shift_step]
             #dt = fac.columns.tolist()[t+shift_step]
+
+            # dynamic industry: extract days and one hot encode it 
+            if self.use_dynamic_ind:
+                X = pd.DataFrame(
+                    self.ind_df.iloc[:, t].apply(lambda x: map_dict[x]).tolist(),
+                    columns=ind_labels,
+                    index=all_ticker
+                )
+
             for class_name in self.class_factor_dict_adj.keys():
                 X[class_name] = self.class_factor_dict_adj[class_name].iloc[:, t]
             today_size = self.eod_data_dict['FloatMarketValue'].iloc[:, t]   # TODO: 是否需要取log?
@@ -223,7 +252,10 @@ class FactorReturnGenerator(object):
         nan_dates = list(set(self.date_list) - set(has_value_dates))
 
         # 拼接因子收益率
-        fac_name_list = list(self.ind_df.columns) + list(self.class_factor_dict_adj.keys())
+        if self.use_dynamic_ind:
+            fac_name_list = [f'ind_{x}' for x in ind_labels] + list(self.class_factor_dict_adj.keys())
+        else: 
+            fac_name_list = list(self.ind_df.columns) + list(self.class_factor_dict_adj.keys())
         factor_return_df = pd.DataFrame(
             f_1, 
             columns=fac_name_list,
@@ -256,18 +288,20 @@ class FactorReturnGenerator(object):
         把收益率储存到本地
         '''
         for return_type in self.return_type_list:
+            # calc path 
+            ret_save_path = os.path.join(self.ret_save_path, self.dynamic_ind_name)
             # make new dir 
-            if not os.path.isdir(self.ret_save_path):
-                os.mkdir(self.ret_save_path)
+            if not os.path.isdir(ret_save_path):
+                os.mkdir(ret_save_path)
 
             # save
-            self.factor_return_df_dict[return_type].to_csv(
-                '{}/Factor_return_{}_.csv'.format(self.ret_save_path, return_type), 
-                float_format='%.8f'
+            self.factor_return_df_dict[return_type].reset_index().to_feather(
+                '{}/Factor_return_{}_'.format(ret_save_path, return_type) # , 
+                # float_format='%.8f'
             )
-            self.idio_return_df_dict[return_type].to_csv(
-                '{}/Idio_return_{}_.csv'.format(self.ret_save_path, return_type), 
-                float_format='%.8f'
+            self.idio_return_df_dict[return_type].reset_index().to_feather(
+                '{}/Idio_return_{}_'.format(ret_save_path, return_type) # , 
+                # float_format='%.8f'
             )
         
     
@@ -276,7 +310,10 @@ class FactorReturnGenerator(object):
         print("Reading Style Factors 正在读取风格因子")
         t0 = time.time()
         self.load_factor_data()
-        self.get_ind_date()
+        if self.use_dynamic_ind: # dynamic 
+            self.get_dynamic_ind_data()
+        else: # static 
+            self.get_ind_data()
         print("Style Factor Reading Takes 读取风格因子耗时", time.time() - t0)
         print("Calculating Style Factor Returns and Idio Returns 正在计算风格行业因子收益率和特质收益率")
         t0 = time.time()
@@ -290,4 +327,3 @@ class FactorReturnGenerator(object):
         t0 = time.time()
         self.save_ret()
         print("Storing takes 储存数据耗时", time.time() - t0)
-

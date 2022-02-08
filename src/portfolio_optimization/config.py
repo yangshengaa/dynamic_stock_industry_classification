@@ -18,7 +18,7 @@ fig_save_path = 'out/risk_fig/'
 ml_factor_path = 'data/features/ml_factors' # predicted return path
 index_member_stock_path = 'data/parsed/index_stock_weight'
 
-start_date = '20170701'
+start_date = '20150105'
 end_date = '20211231'
 
 return_type_list =  ['c2next_c'] # ['o2next_o', 'c2next_o', 'o2c', 'c2next_c']
@@ -38,6 +38,9 @@ class_name = [
     'alpha'
 ] 
 
+# dynamic industry 
+use_dynamic_ind = True 
+dynamic_ind_name = 'zz1000_10_MST_2_spectral_'  # subfolder of this name in the output 
 
 # —————— cov estimation parameters —————
 h = 240   # sample 240
@@ -46,11 +49,11 @@ tau = 90   # EWMA half life 90
 lam = 0.5 ** (1/tau)   # EWMA weight
 
 
-N_W = True  # 是否进行Newey-West自相关调整
+N_W = False  # 是否进行Newey-West自相关调整
 pred_period = 1  # Newey-West自相关调整预测风险时长
 D = 4   # Newey-West自相关调整总滞后时长  # * 不同因子收益率的时序变化非常大, 可以直接用 4 * (240 / 100) ** (2 / 9), 向下取整为4
 
-eigen_adj = True   # 是否进行因子协方差矩阵特征值调整
+eigen_adj = False   # 是否进行因子协方差矩阵特征值调整
 alpha = 1.2  # 模拟风险偏差调整系数（取值略大于1,研报经验值1.2）
 
 struc_adj = True # 是否进行结构化调整
@@ -58,11 +61,11 @@ h_struc = 240  # 结构化调整 时间周期
 min_o = 50  # 最小样本数量
 E0 = 1.05  # 残差项偏误常数
 
-bs_adj = True   # 是否进行特质协方差矩阵贝叶斯调整
+bs_adj = False   # 是否进行特质协方差矩阵贝叶斯调整
 q = 1  # 贝叶斯经验压缩系数
 bs_group_num = 10 # 根据市值将股票分为几组
 
-vol_adj = True   # 是否进行波动率偏误调整
+vol_adj = False   # 是否进行波动率偏误调整
 h_vol = 60   # 波动率偏误调整 时间周期 240
 tau_vol = 20  # 波动率偏误调整 半衰期 40
 lam_vol = 0.5 ** (1/tau_vol)   # 波动率偏误调整 EWMA权重

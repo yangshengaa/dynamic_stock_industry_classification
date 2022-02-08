@@ -49,14 +49,6 @@ class CovMatrixEstimator:
         self.return_type_list = cfg.return_type_list    
         self.start_date = cfg.start_date
         self.end_date = cfg.end_date
-        # self.myconnector = PqiDataSdk(
-        #     user=getuser(), 
-        #     size=10, 
-        #     pool_type="mp", 
-        #     log=False, 
-        #     offline=True, 
-        #     str_map=False
-        # )
 
         # data 
         self.myconnector = PqiDataSdkOffline()
@@ -71,6 +63,10 @@ class CovMatrixEstimator:
         self.tickers = list(self.eod_data_dict["FloatMarketValue"].index) 
         self.index_code_to_name = cfg.index_code_to_name
         
+        # dynamic ind 
+        self.use_dynamic_ind = cfg.use_dynamic_ind
+        self.dynamic_ind_name = cfg.dynamic_ind_name
+
         # path 
         self.cov_save_path = cfg.cov_save_path   # 协方差矩阵写入路径     
         self.ret_read_path = cfg.ret_save_path   # 因子收益/特质收益读取路径
@@ -100,8 +96,12 @@ class CovMatrixEstimator:
 
     def read_ret_data(self, return_type):
         """ read a factor return and idio returns for a specific return type  """
-        factor_return = pd.read_csv('{}/Factor_return_{}_.csv'.format(self.ret_read_path, return_type), index_col= 0)
-        idio_return = pd.read_csv('{}/Idio_return_{}_.csv'.format(self.ret_read_path, return_type), index_col=0)
+        # TODO: change to other formats 
+        ret_save_path = os.path.join(self.ret_read_path, self.dynamic_ind_name)
+        factor_return = pd.read_feather('{}/Factor_return_{}_'.format(ret_save_path, return_type)).set_index('index')
+        idio_return = pd.read_feather('{}/Idio_return_{}_'.format(ret_save_path, return_type)).set_index('index')
+        factor_return.index = factor_return.index.astype(int)
+        idio_return.index = idio_return.index.astype(int)
 
         # algin tickers
         idio_return.index = [str(x) for x in idio_return.index]
@@ -129,17 +129,10 @@ class CovMatrixEstimator:
         read a single aggregated style factor 
         :param feature_name: style factor name
         """
-        # feature_name = "eod_" + feature_name
-        # factor = self.myconnector.get_eod_feature(
-        #     fields=feature_name, 
-        #     where=self.class_factor_read_path, 
-        #     tickers=tickers, 
-        #     dates=date_list
-        # )
         factor_df = self.myconnector.read_eod_feature(
             feature_name, des='risk_factor/class_factors', dates=date_list
         )
-        return factor_df # factor[feature_name].to_dataframe()
+        return factor_df 
 
 
     def load_factor_data(self):
@@ -150,9 +143,8 @@ class CovMatrixEstimator:
             self.class_factor_dict_adj[name] = self.read_factor_data(name, self.tickers, self.date_list)
 
 
-    def get_ind_date(self):
-        # 读取行业数据
-        # TODO: 滚动变化的行业？
+    def get_ind_data(self):
+        """ get static industry data """
         # TODO: add others (代码见low_fre_alpha_generator/process_raw/neutralize_factor)
         # TODO: add country factor? (CNE5)
         ind_members = self.myconnector.get_sw_members().drop_duplicates(subset=['con_code'])[["index_code", "con_code"]]
@@ -165,6 +157,12 @@ class CovMatrixEstimator:
             self.ind_df.loc[label[1], label[0]] = 1
         self.ind_df = self.ind_df.fillna(0)
         self.ind_df.columns = ["ind_" + str(i + 1) for i in range(len(self.ind_df.columns))]
+    
+    def get_dynamic_ind_data(self):
+        """ get dynamic industry data """
+        ind_df = self.myconnector.read_ind_feature(self.dynamic_ind_name)
+        ind_df_selected = ind_df[self.date_list]
+        self.ind_df = ind_df_selected
 
     # ===================================================================
     # ================= 原始协方差估计 ===================================
@@ -496,12 +494,28 @@ class CovMatrixEstimator:
         date_list_struc = list(set(list(idio_return_df.columns[self.h_struc - 1:])) & set(list(idio_var_est.keys())))
         date_list_struc.sort()
 
+        # static industry: copy once and replace columns in the loop 
+        if not self.use_dynamic_ind:
+            X = self.ind_df.copy()  # 外层copy一次，循环内自己换factor_name
+        else:
+            sample_cross_section = self.ind_df.iloc[:, 0]
+            ind_labels = sorted(list(set(sample_cross_section.tolist())))
+            map_dict = dict(zip(ind_labels, np.eye(len(ind_labels), dtype=int)))
+
+
         for date in date_list_struc:
             today_original_idio_var = idio_var_est[date]
             sig_ts = np.sqrt(today_original_idio_var[gamma[(gamma == 1)[date]].index])
 
             # 对gamma=1的股票，回归计算拟合系数
-            X = self.ind_df.copy()
+            # dynamic industry: extract days and one hot encode it 
+            if self.use_dynamic_ind:
+                X = pd.DataFrame(
+                    self.ind_df[date].apply(lambda x: map_dict[x]).tolist(),
+                    columns=ind_labels,
+                    index=self.all_stocks
+                )
+            # X = self.ind_df.copy()
             for class_name in self.class_factor_dict_adj.keys():
                 X[class_name] = self.class_factor_dict_adj[class_name][date]
 
@@ -528,11 +542,6 @@ class CovMatrixEstimator:
             new_idio_var[date] = today_original_idio_var
 
         self.idio_var_raw_dict[return_type] = new_idio_var
-
-
-
-
-
 
 
     # TODO：后续待添加：其他协方差矩阵估计方式
@@ -580,11 +589,12 @@ class CovMatrixEstimator:
         把协方差矩阵储存到本地
         '''
         for return_type in self.return_type_list:
-            if not os.path.isdir(self.cov_save_path):
-                os.mkdir(self.cov_save_path)
+            cov_save_path = os.path.join(self.cov_save_path, self.dynamic_ind_name)
+            if not os.path.isdir(cov_save_path):
+                os.mkdir(cov_save_path)
 
-            factor_cov_file_name = os.path.join(self.cov_save_path, 'factor_cov_est_{}'.format(return_type))
-            idio_var_file_name = os.path.join(self.cov_save_path, 'idio_var_est_{}'.format(return_type))
+            factor_cov_file_name = os.path.join(cov_save_path, 'factor_cov_est_{}'.format(return_type))
+            idio_var_file_name = os.path.join(cov_save_path, 'idio_var_est_{}'.format(return_type))
 
             if cfg.N_W:
                 factor_cov_file_name = factor_cov_file_name + '_NW{}_{}'.format(self.pred_period, cfg.D)
@@ -623,7 +633,13 @@ class CovMatrixEstimator:
         self.load_ret_data()
         self.get_cov_dates()
         self.load_factor_data()
-        self.get_ind_date()
+        
+        # industry 
+        if self.use_dynamic_ind: # dynamic 
+            self.get_dynamic_ind_data()
+        else:                    # static
+            self.get_ind_data()
+
         print("读取收益率数据耗时", time.time() - t0)
 
         print("正在计算协方差矩阵")
@@ -636,8 +652,3 @@ class CovMatrixEstimator:
         t0 = time.time()
         self.save_cov()
         print("储存数据耗时", time.time() - t0)
-
-
-if __name__ == '__main__':
-    calculating_process = CovMatrixEstimator()
-    calculating_process.start_cal_cov_process()
