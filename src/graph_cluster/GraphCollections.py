@@ -78,6 +78,8 @@ class GeneralGraph:
     def detect_community(self, g:nx.Graph=None) -> Dict[str, int]:
         """ detect communities """
         # pick type and run 
+
+        # clustering not using graph structures (but is related to it)
         if self.clustering_type == 'single_linkage':
             # single linkage does not depend on graph, so no graph needed
             # compute distance frm similarity
@@ -98,30 +100,34 @@ class GeneralGraph:
             community_labels = clustering.labels_
             label_dict = dict(zip(self.similarity_df.index, community_labels))
 
-        
-        elif self.clustering_type == 'spectral':
-            clustering = SpectralClustering(
-                n_clusters=self.num_clusters,
-                affinity='precomputed',
-                assign_labels='discretize'
-            ).fit(nx.to_numpy_array(g))
-
-            # output labels 
-            community_labels = clustering.labels_
-            label_dict = dict(zip(self.similarity_df.index, community_labels))
-        
-        elif self.clustering_type == 'node2vec':
-            model = Node2Vec(g, num_clusters=self.num_clusters)
-            model.generate_embeddings()
-            label_dict = model.get_community()
-
-        elif self.clustering_type == 'sub2vec':
-            model = Sub2Vec(g, num_clusters=self.num_clusters)
-            model.generate_embeddings()
-            label_dict = model.get_community()
-
+        # clustering using graph structure 
         else: 
-            raise NotImplementedError(f'{self.clustering_type} not supported')
+            if g is None:
+                g = self.build_graph()
+            
+            if self.clustering_type == 'spectral':
+                clustering = SpectralClustering(
+                    n_clusters=self.num_clusters,
+                    affinity='precomputed',
+                    assign_labels='discretize'
+                ).fit(nx.to_numpy_array(g))
+
+                # output labels 
+                community_labels = clustering.labels_
+                label_dict = dict(zip(self.similarity_df.index, community_labels))
+            
+            elif self.clustering_type == 'node2vec':
+                model = Node2Vec(g, num_clusters=self.num_clusters)
+                model.generate_embeddings()
+                label_dict = model.get_community()
+
+            elif self.clustering_type == 'sub2vec':
+                model = Sub2Vec(g, num_clusters=self.num_clusters)
+                model.generate_embeddings()
+                label_dict = model.get_community()
+
+            else: 
+                raise NotImplementedError(f'{self.clustering_type} not supported')
         
         return label_dict
 

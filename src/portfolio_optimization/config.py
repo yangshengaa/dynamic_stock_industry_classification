@@ -10,8 +10,7 @@ portfolio optimization config. In sequence, we have
 
 # —————— data path ——————
 class_factor_path = "data/features/risk_factor/class_factors"  # aggregated style factor path
-# ret_save_path = 'out/return'  # factor return store path
-ret_save_path = 'out/temp'
+ret_save_path = 'out/return'  # factor return store path
 cov_save_path = 'out/cov'  # covariance matrix store path f"../res/cov/"
 input_signal_path = 'out/signal_df'   # input signal df
 output_signal_path = 'out/signal_df'    # output signal df
@@ -24,7 +23,6 @@ end_date = '20211231'
 
 return_type_list =  ['c2next_c'] # ['o2next_o', 'c2next_o', 'o2c', 'c2next_c']
 
-# TODO: rerun 
 # aggregated 
 class_name = [
     'WeightedMomentum', 

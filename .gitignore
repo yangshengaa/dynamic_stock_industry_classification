@@ -13,6 +13,7 @@ out/risk_fig/
 out/cov
 out/graph_fig
 out/temp
+out/train_test_dates
 
 # test_space 
 test_space*

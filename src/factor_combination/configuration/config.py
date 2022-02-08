@@ -46,7 +46,7 @@ skip_features = None
 
 # * -------- model selection -------- * 
 # 'linear', 'xgb', 'Lgb', 'rf'
-model_selection = 'linear'
+model_selection = 'lgb'
 
 # ————————traing config ————————
 cost = 0.0015

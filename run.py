@@ -35,7 +35,8 @@ Portfolio Optimization
 
 Graph Clustering 
 
-- 'cluster': graph clustering 
+- 'cluster_train': train graph clustering
+    - config in 'graph_cluster/config.py'
 
 other modules: 
 - 'pairs': run pairs factor generation
@@ -103,6 +104,13 @@ def portfolio_optimization_weight():
     calculating_process = WeightOptimizer()
     calculating_process.start_weight_optimize_process()
 
+# ----- graph clustering ------
+def graph_clustering_train():
+    """ train graph clusters """
+    from src.graph_cluster.IndustryTrainer import IndustryTrainer
+
+    industry_trainer = IndustryTrainer()
+    industry_trainer.run()
 
 # =======================
 # ------ others ---------
@@ -159,7 +167,10 @@ def main(targets):
     elif 'opt_weight' in targets:
         portfolio_optimization_weight()
 
-
+    # graph clustering 
+    elif 'cluster_train' in targets:
+        graph_clustering_train()
+    
     # ---------- side modules ------------
     # pairs 
     elif 'pairs' in targets:
@@ -179,6 +190,7 @@ def main(targets):
                 'opt_cov_est',
                 'opt_fac_ret',
                 'opt_weight',
+                'cluster_train',
                 'pairs',
                 'gen_risk'
             )

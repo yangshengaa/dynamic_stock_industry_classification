@@ -298,6 +298,7 @@ class Sub2Vec:
 
 # Modified Louvain
 # the followings are modified from https://github.com/taynaud/python-louvain
+# * impractical except the information filtering part ...
 
 class LouvainGraphStatus(object):
     """

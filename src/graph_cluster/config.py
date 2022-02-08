@@ -23,11 +23,22 @@ na_threshold = 0.6
 #       graph specifics 
 # ===========================
 
+# supporting AG, MST, and PMFG 
+graph_type = 'MST'
+num_clusters = 10 
+
  # supporting single_linkage, spectral, node2vec, sub2vec, 
 clustering_type = 'spectral'   
 
 # filter information {0: raw, 1: keep large eigenvalues; 2: keep large but market mode}
 filter_mode = 2
+
+# =============================
+#        stock related       
+# =============================
+
+# support sz50, hs300, zz500, zz1000. Mostly on zz1000
+stock_pool = 'zz1000'
 
 # =======================================
 # ------ community detection utils ------

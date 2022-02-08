@@ -1500,7 +1500,8 @@ class LgbModel:
         # record_df.to_csv(self.model_record_path)
 
         t_start = time.time()
-
+        # * temporary date collections 
+        # train_test_dates = []
         while (self.train_pos + self.train_period + self.test_delay + cfg.lag_date) <= len(self.date_list):
             t0 = time.time()
 
@@ -1510,6 +1511,7 @@ class LgbModel:
                 test_date_list = self.date_list[self.train_pos + self.train_period + self.test_delay:
                                                 min(self.train_pos + self.train_period + self.test_period +
                                                     self.test_delay + cfg.lag_date - 1, len(self.date_list))]
+                # train_test_dates.append((train_date_list, test_date_list))
             elif "expand" in self.train_mode:
                 train_date_list = self.date_list[:self.train_pos + self.train_period + cfg.lag_date - 1]
                 test_date_list = self.date_list[self.train_pos + self.train_period + self.test_delay:
@@ -1522,6 +1524,10 @@ class LgbModel:
                 print("...Error:{}...".format(self.train_mode))
                 break
             print(f"\nTraining Lgb Model For {train_date_list[0]} to {train_date_list[-1]}")
+
+            # # * stop training 
+            # self.train_pos += self.test_period
+            # continue
 
             # parepare data
             self.DataTools.prepare_data(train_date_list=train_date_list, test_date_list=test_date_list)
@@ -1728,6 +1734,12 @@ class LgbModel:
         # 备用代码：将数据去除极值
         # df['pred_test_y'] = df['pred_test_y'].clip(lower=-30, upper=30)
         # df.to_csv(log_dir + '/y_recorder.csv', index=False)
+
+        # # * save dates 
+        # print(train_test_dates)
+        # with open('train_test_dates.pkl', 'wb') as f:
+        #     pickle.dump(train_test_dates, f)
+        # raise NotImplementedError('Stop!')
 
         # save 
         with open(os.path.join(self.model_path, "lgb_{}.pkl".format(self.number)), 'wb') as f:

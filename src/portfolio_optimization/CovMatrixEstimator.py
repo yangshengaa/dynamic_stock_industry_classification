@@ -155,16 +155,6 @@ class CovMatrixEstimator:
         # TODO: 滚动变化的行业？
         # TODO: add others (代码见low_fre_alpha_generator/process_raw/neutralize_factor)
         # TODO: add country factor? (CNE5)
-        # ind_members = self.myconnector.get_sw_members(level=[1])[["industry_name", "con_code"]]
-        # self.ind_df = pd.DataFrame(index=self.tickers, columns=sorted(list(set(ind_members["industry_name"]))))
-        # for i in range(len(ind_members.index)):
-        #     label = list(ind_members.iloc[i])
-        #     self.ind_df.loc[label[1], label[0]] = 1
-        # self.ind_df = self.ind_df.fillna(0)
-        # # ind_name_list = ind_df.columns
-        # self.ind_df.columns = ["ind_" + str(i + 1) for i in range(len(self.ind_df.columns))]
-
-
         ind_members = self.myconnector.get_sw_members().drop_duplicates(subset=['con_code'])[["index_code", "con_code"]]
         self.ind_df = pd.DataFrame(
             index=self.all_stocks, columns=list(set(ind_members["index_code"]

@@ -278,7 +278,7 @@ class PqiDataSdkOffline:
         feature_path = os.path.join(FEATURE_PATH, des, f'ind_{ind_name}')
         return feature_path
 
-    def save_ind_feature(
+    def read_ind_feature(
          self,
          ind_name: str,
          des: str = 'dynamic_ind',
@@ -303,10 +303,10 @@ class PqiDataSdkOffline:
         # retrieve
         ind_df = pd.read_feather(
             feature_path, columns=columns_to_read
-        ).set_index('index')
+        ).set_index('index').astype(int)
         return ind_df
 
-    def read_ind_feature(self, ind_name: str, ind_df: pd.DataFrame, des: str='dynamic_ind') -> None:
+    def save_ind_feature(self, ind_name: str, ind_df: pd.DataFrame, des: str='dynamic_ind') -> None:
         """ 
         save computed features. All named f'eod_{ind_name}'
         
@@ -315,4 +315,4 @@ class PqiDataSdkOffline:
         :param des: the destination of the path. default to 'dynamic_ind'
         """
         feature_path = os.path.join(FEATURE_PATH, des, f'ind_{ind_name}')
-        ind_df.reset_index().to_feather(feature_path)
+        ind_df.astype(int).reset_index().to_feather(feature_path)

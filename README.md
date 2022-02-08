@@ -66,7 +66,7 @@ Portfolio Optimization:
 
 Graph Clustering:
 
-- graph clustering: `python run.py cluster`
+- train graph clustering: `python run.py cluster_train`
 
 To run each submodules, in current directory:
 
