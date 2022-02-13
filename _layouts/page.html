@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/css/bootstrap.min.css"
+        integrity="sha384-Zug+QiDoJOrZ5t4lssLdxGhVrurbmBWopoEl+M6BdEfwnCJZtKxi1KgxUyJq13dy" crossorigin="anonymous">
+
+    <style>
+        h1 {
+            font-size: 24pt;
+        }
+
+        h2 {
+            font-size: 20pt;
+        }
+
+        h3 {
+            font-size: 16pt;
+        }
+
+        header h1 {
+            font-size: 3.45vw;
+        }
+
+        .content [alt=drawing] {
+            width: 100%;
+        }
+
+        a {
+            color: #1133ee;
+        }
+
+        body {
+            padding-bottom: 10em;
+        }
+
+        .sidenote {
+            float: right;
+            margin-right: -15rem;
+            width: 14rem;
+            background-color: #ddd;
+            padding: 0.5rem;
+        }
+
+        code {
+            color: #169928;
+        }
+
+        ol li {
+            padding-bottom: 1rem;
+        }
+
+        table {
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 5px;
+            text-align: left;
+        }
+
+        th {
+            background-color: gray;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid black;
+        }
+    </style>
+
+    <title>{{ page.title }}</title>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <div class="row justify-content-center">
+
+            <div class="col-lg-6 col-md-6">
+                <img width=100% title="{{ page.doodle-alt }}" alt="{{
+      page.doodle-alt }}" src="{{ page.doodle | absolute_url}}"></img>
+            </div>
+        </div>
+
+        <div class="row justify-content-center">
+            <div class="col-lg-8 col-md-12 content">
+
+                <header>
+                    <h1>{{ page.title }}</h1>
+                </header>
+
+                {{ content }}
+
+            </div>
+        </div>
+
+
+
+    </div>
+
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+        integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+        integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+        crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/js/bootstrap.min.js"
+        integrity="sha384-a5N7Y/aK3qNeh15eJKGWxsqtnX/wWdSZSKp+81YjTmS15nvnvxKHuzaWwXHDli+4"
+        crossorigin="anonymous"></script>
+    <script type="text/javascript"
+        src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+    <script>
+        MathJax.Hub.Config({
+            extensions: [
+                "MathMenu.js",
+                "MathZoom.js",
+                "AssistiveMML.js",
+                "a11y/accessibility-menu.js"
+            ],
+            jax: ["input/TeX", "output/CommonHTML"],
+            TeX: {
+                extensions: [
+                    "AMSmath.js",
+                    "AMSsymbols.js",
+                    "noErrors.js",
+                    "noUndefined.js",
+                ]
+            }
+        });
+    </script>
+</body>
+
+</html>

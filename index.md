@@ -1,4 +1,5 @@
 ---
+layout: page
 title: "Dynamic Stock Industry Classification"
 toc: yes
 ---
