@@ -1,7 +1,8 @@
 ---
-layout: page
+layout: default
 title: "Dynamic Stock Industry Classification"
 toc: yes
+categories: main
 ---
 
 ## Background
