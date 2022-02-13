@@ -1,14 +1,14 @@
 # Setup
 title:        Dynamic Stock Industry Classification
 tagline:      Use graph-based analysis to re-classify stocks in China A-share and to improve Markowitz portfolio optimization
-baseurl:      ""
+baseurl:      /dynamic_stock_industry_classification
 paginate:     1
 locale:       "en"
 
 # About/contact
 author:
   name:       Sheng Yang
-  url:        https://github.com/yangshengaa/dynamic_stock_industry_classification 
+  url:        https://yangshengaa.github.io
 
 # Gems
 gems:
