@@ -6,6 +6,8 @@ Note that for strategy confidentiality, many files are hidden.
 
 To accommodate speedy development, the current code structure simplicity is sacrificed. This will be addressed in later versions.
 
+Project Website: [Dynamic Stock Industrial Classification](https://yangshengaa.github.io/dynamic_stock_industry_classification/)
+
 ## Module Breakdown
 
 This project contains the following five modules:
