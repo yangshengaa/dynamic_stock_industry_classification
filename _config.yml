@@ -6,9 +6,9 @@ paginate:     1
 locale:       "en"
 
 # About/contact
-author:
+author:       
   name:       Sheng Yang
-  url:        https://yangshengaa.github.io
+  url:        https://github.com/yangshengaa/dynamic_stock_industry_classification
 
 # Gems
 gems:
