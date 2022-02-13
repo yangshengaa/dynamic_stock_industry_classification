@@ -29,13 +29,20 @@ To re-classify stocks from stock data, we believe that graph helps filter inform
 We would like to build a graph whose nodes are stocks and edges are indicators of connectivity. Suppose there are $N$ tradable assets and $T$ days for observation, we take the time-series correlation among stocks as a criteria to add edges.
 
 To compute the time-series correlation, suppose $s_{i,t}$ is the (close) price of asset $i$ at time $t \in \{1, ..., T\}$, then the daily return is $r_{i, t} = \frac{s_{i, t} - s_{i, t - 1}}{s_{i, t - 1}}$ ($t$ starts from 2, which means there are only $T - 1$ returns). Then for any $i, j$, the time-series correlation is thus given by
-$$\rho_{ij} = \frac{\sum_{t=2}^T (r_{i, t} - \bar{r}_i)(r_{j, t} - \bar{r}_j) }{\sqrt{[\sum_{t=2}^T (r_{i, t} - \bar{r}_i)^2] [\sum_{t=2}^T (r_{j, t} - \bar{r}_j)^2]}}$$
-where $\bar{r}_i = \frac{\sum_{t = 2}^T r_{i, t}}{T - 1}$. This could be considered as the "weight" of the edge between stock $i$ and stock $j$. One sometimes need to convert weights to distance between two nodes, and a naive form is give by
-$$d_{ij} = \sqrt{2 (1 - \rho_{ij})}$$
+
+$$
+\rho_{ij} = \frac{\sum_{t=2}^T (r_{i, t} - \bar{r}_i)(r_{j, t} - \bar{r}_j) }{\sqrt{[\sum_{t=2}^T (r_{i, t} - \bar{r}_i)^2] [\sum_{t=2}^T (r_{j, t} - \bar{r}_j)^2]}}
+$$
+
+where $\bar{r}_i = \frac{\sum_{t = 2}^T r_{i, t}}{T - 1}$ . This could be considered as the "weight" of the edge between stock $i$ and stock $j$. One sometimes need to convert weights to distance between two nodes, and a naive form is give by
+
+$$
+d_{ij} = \sqrt{2 (1 - \rho_{ij})}
+$$
 
 Given the similarity measures (correlation) and distance measures, we may build graphs by using the following methods:
 
-- **Asset Graph (AG)**: connect if $|\rho_{ij}|$ is beyond a pre-defined threshold;  
+- **Asset Graph (AG)**: connect if $ \|\rho_{ij}\| $ is beyond a pre-defined threshold;  
 - **Minimum Spanning Tree (MST)**: sort all $\rho_{ij}$ in a descending order, add the edge if after addition the graph is still a forest or a tree (Kruskal's Algorithm);  
 - **Planar Maximally Filter Graph (PMFG)**: simiilar to MST, but add edge if after addition the graph is still planar;
 - **Random Matrix Theory (RMT)**: select information from the correlation matrix and feed back to the previous three models as a refinement.
@@ -147,7 +154,9 @@ In 1993, FF3 (Fama-French Three-Factor Model) was proposed and its author later 
 $$\mathbb{E}(R_i^e) = \alpha_i + \beta_{i, market} \lambda_{market} + \beta_{i, cap} \lambda_{cap} + \beta_{i, bm} \lambda_{bm}, \; \forall i \in \{1, ..., N\}$$
 
 One could observe that there is nothing stopping us from adding more factors (more features typically brings lower MSE in regression tasks, although collinearity needs to be either eliminated or circumvented by picking an ML model that is robust to collinearity). Many modern quant practitioner focus on mining factors. Suppose we have $K$ factors, then our model becomes
+
 $$\mathbb{E}(R_i^e) = \alpha_i + \sum_{k=1}^K \beta_{i, k} \lambda_{k} = \alpha_i + \mathbb{\beta}_i^T \mathbb{\lambda}, \; \forall i \in \{1, ..., N\}$$
+
 where $\mathbb{\beta}_i, \mathbb{\lambda} \in \mathbb{R}^K$.
 
 In a hedge fund, usually $K > 2000$. But for limited data and computing resources, in this project $K = 646$. These includes factors computed from daily price and volume data (momentum, reversal, idiosyncratic returns, technical indicators, and other confidential ones).
@@ -175,6 +184,7 @@ Basic backtest config includes deducting costs (0.0015) for each trade, and we e
 
 With $M$ stocks selected, we would like to know the exact weights of each investment to control the overall risk exposure. Suppose $R \in \mathbb{R}^M$ is the predicted return of the $M$ stocks (machine learning output), $\Sigma \in \mathbb{R}^{M \times M}$  the estimated covariance matrix, and $x \in \mathbb{R}^M$ the weights for each stocks, we have the following constraint optimization problem:
 
+$$
 \begin{align*}
     &\max_x \ \ R^T x - \lambda x^T \Sigma x \\
     s.t. \ \ &\forall i: \ \ W_{low} \leq x_i \leq W_{high}, \ \ \sum_{i=1}^n x_i = 1 \ \ (\text{Holding Constraint}) \\
@@ -184,6 +194,7 @@ With $M$ stocks selected, we would like to know the exact weights of each invest
 (\text{Industry Exposure Constraint}) \\
     &\sum_{i=1}^n |x - x_{t-1}| \leq TO_{limit}\  (\text{Turnover Constraint})
 \end{align*}
+$$
 
 The objective function means we would like to maximize returns and minimize risk at the same time. $\lambda = 10$ empirically works the best.
 
