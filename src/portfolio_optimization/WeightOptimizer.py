@@ -9,6 +9,7 @@ import traceback
 import logging
 import numpy as np
 import pandas as pd
+from typing import Dict, List 
 
 import cvxopt
 from cvxopt import matrix, solvers
@@ -80,6 +81,10 @@ class WeightOptimizer():
         self.weight_high = float(cfg.weight_high)
         self.qp_method = cfg.qp_method
 
+        # dynamic ind 
+        self.use_dynamic_ind = cfg.use_dynamic_ind
+        self.dynamic_ind_name = cfg.dynamic_ind_name
+
 
     # ==============================================
     # -------------- data prep ---------------------
@@ -90,8 +95,12 @@ class WeightOptimizer():
         read factor cov and idio cov
         读取因子和特质收益率协方差矩阵 
         """
-        factor_cov_file_name = os.path.join(self.cov_save_path, 'factor_cov_est_{}{}'.format(return_type,cfg.adj_method))
-        idio_var_file_name = os.path.join(self.cov_save_path, 'idio_var_est_{}{}'.format(return_type,cfg.adj_method))
+        if self.use_dynamic_ind:
+            save_path = os.path.join(self.cov_save_path, self.dynamic_ind_name)
+        else:
+            save_path = self.cov_save_path
+        factor_cov_file_name = os.path.join(save_path, 'factor_cov_est_{}{}'.format(return_type,cfg.adj_method))
+        idio_var_file_name = os.path.join(save_path, 'idio_var_est_{}{}'.format(return_type,cfg.adj_method))
 
     
         f1 = open(factor_cov_file_name + '.pkl','rb')
@@ -138,7 +147,7 @@ class WeightOptimizer():
         for name in self.class_name:
             self.class_factor_dict_adj[name] = self.read_factor_data(name, self.tickers , self.date_list)
 
-
+    # -------- static ind ---------- 
     def get_ind_date(self):
         """ read industry data """
         # 读取行业数据
@@ -154,6 +163,32 @@ class WeightOptimizer():
         self.ind_df = self.ind_df.fillna(0)
         self.ind_df.columns = ["ind_" + str(i + 1) for i in range(len(self.ind_df.columns))]
 
+    # --------- dynamic ind -----------
+    def get_dynamic_ind_data(self):
+        """ get dynamic industry data """
+        ind_df = self.myconnector.read_ind_feature(self.dynamic_ind_name)
+        ind_df_selected = ind_df[self.date_list]
+        self.ind_df = ind_df_selected
+
+    def prepare_dynamic_ind_data_ohe(self):
+        """ determine mapping rule for the dynamic ind throughout """
+        sample_cross_section = self.ind_df.iloc[:, 0]
+        ind_labels = sorted(list(set(sample_cross_section.tolist())))
+        map_dict = dict(zip(ind_labels, np.eye(len(ind_labels), dtype=int)))
+
+        # append to self for later reuse
+        self.ind_labels = ind_labels
+        self.num_dyn_ind = len(self.ind_labels)
+        self.map_dict = map_dict  
+
+    def dynamic_ind_data_ohe(self, date: str, selected_stocks: List[str or int]):
+        """ One-hot encode the dynamic industry data of one date """
+        X = pd.DataFrame(
+            self.ind_df[date].loc[selected_stocks].apply(lambda x: self.map_dict[x]).tolist(),
+            columns=self.ind_labels,
+            index=selected_stocks
+        )
+        return X 
 
     def read_ml_factor_data(self, feature_name, tickers, date_list):
         """ read ml predicted returns (factor) 读取ml预测收益率因子数据 """
@@ -162,7 +197,6 @@ class WeightOptimizer():
             feature_name, des='ml_factor', dates=date_list
         )
         return factor_df
-
 
     def get_opt_dates(self):
         """
@@ -180,7 +214,13 @@ class WeightOptimizer():
         self.load_cov_data()
         self.load_signal_data()
         self.load_factor_data()
-        self.get_ind_date()
+
+        # dynamic ind 
+        if self.use_dynamic_ind:
+            self.get_dynamic_ind_data()
+        # static ind 
+        else:
+            self.get_ind_date()
         self.get_opt_dates()
 
     def get_stock_weight(self, index: str) -> pd.DataFrame:
@@ -238,6 +278,11 @@ class WeightOptimizer():
         
         sigma_holding = {}
 
+        if not self.use_dynamic_ind:
+            X = self.ind_df.copy()
+        else:
+            self.prepare_dynamic_ind_data_ohe()
+
         for date in self.date_list_opt:
             current_date_input_signal = self.input_signal[date]
             
@@ -261,8 +306,15 @@ class WeightOptimizer():
             # diag_E = diag_E[holding_stock_list].values[0]
             Sigma_E = np.diag(diag_E)             
             
+            # dynamic industry: extract days and one hot encode it 
+            if self.use_dynamic_ind:  # TODO: pack into a method 
+                X = pd.DataFrame(
+                    self.ind_df[date].apply(lambda x: self.map_dict[x]).tolist(),
+                    columns=self.ind_labels,
+                    index=self.tickers
+                )
+
             # factor loading
-            X = self.ind_df.copy()
             for class_name in self.class_factor_dict_adj.keys():
                 X[class_name] = self.class_factor_dict_adj[class_name][date]
 
@@ -323,9 +375,13 @@ class WeightOptimizer():
             X_style[class_name] = self.class_factor_dict_adj[class_name][date]
 
         X_style_holding = X_style.T[holding_stock_list].fillna(0) # TODO: 改进处理nan的方法
-        X_ind_holding = self.ind_df.T[holding_stock_list]
+        if not self.use_dynamic_ind:
+            X_ind_holding = self.ind_df.T[holding_stock_list]
+        else:
+            X_ind_holding = self.dynamic_ind_data_ohe(date, holding_stock_list).T
         X_style_benchmark = X_style.T[benchmark_stock_list].fillna(0)
         benchmark_current_weight = self.benchmark_index_weight[date][self.benchmark_index_weight[date].notna()]
+        benchmark_stock_ind = self.dynamic_ind_data_ohe(date, benchmark_stock_list).T
 
         # start loop
         status = False
@@ -353,13 +409,17 @@ class WeightOptimizer():
 
             # 行业中性
             if cfg.ind_neutralize:
-                benchmark_current_ind = np.matmul(self.ind_df.T[benchmark_stock_list], benchmark_current_weight).values
-                ind_num = self.ind_df.shape[1]
+                if self.use_dynamic_ind:
+                    benchmark_current_ind = np.matmul(benchmark_stock_ind, benchmark_current_weight).values
+                    ind_num = self.num_dyn_ind
+                else: 
+                    benchmark_current_ind = np.matmul(self.ind_df.T[benchmark_stock_list], benchmark_current_weight).values
+                    ind_num = self.ind_df.shape[1]
                 # ind_low_limit = cfg.ind_low_limit
                 # ind_high_limit = cfg.ind_high_limit
                 ind_low = np.matrix(np.full(ind_num, ind_low_limit) + benchmark_current_ind).T
                 ind_high = np.matrix(np.full(ind_num, ind_high_limit) + benchmark_current_ind).T
-                G = matrix(np.vstack((G,X_ind_holding.values, -X_ind_holding.values)))
+                G = matrix(np.vstack((G, X_ind_holding.values, -X_ind_holding.values)))
                 h = matrix(np.vstack((h, ind_high,-ind_low)))
 
             # 限制换手率
@@ -387,7 +447,7 @@ class WeightOptimizer():
                 solution = np.array(sol['x'])
                 status = 'optimal' in sol['status']
             except:
-                # traceback_msg = traceback.format_exc()
+                traceback_msg = traceback.format_exc()
                 status = False
 
             if not status:
@@ -402,6 +462,7 @@ class WeightOptimizer():
                             # 所有约束失败
                             status = True
                             fail_to_constrain = True
+                            print(traceback_msg)
                             
                         else:
                             style_low_limit = self.all_style_low_limit
@@ -899,7 +960,7 @@ class WeightOptimizer():
                 cfg.weight_low, 
                 cfg.weight_high, 
                 return_type,
-                self.obj_func, 
+                self.obj_func,
             )
             if 'ret_var' in self.obj_func:
                 file_name = file_name + f'_penalty{self.penalty_lambda}'
@@ -932,7 +993,8 @@ class WeightOptimizer():
                     cfg.ind_neutralize * f'_ind{cfg.ind_high_limit}' + 
                     cfg.turnover_constraint * f'_turnover{cfg.turnover_limit}'
                 )
-
+            if self.use_dynamic_ind:
+                file_name += self.dynamic_ind_name
             # self.opt_signal_dict[return_type].to_csv(file_name + '.csv')
             # self.myconnector.save_eod_feature(
             #     file_name, self.opt_signal_dict[return_type],

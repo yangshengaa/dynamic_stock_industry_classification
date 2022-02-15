@@ -18,8 +18,10 @@ fig_save_path = 'out/risk_fig/'
 ml_factor_path = 'data/features/ml_factors' # predicted return path
 index_member_stock_path = 'data/parsed/index_stock_weight'
 
-start_date = '20150105'
+# start_date = '20150105'  # for fac_ret and cov_est
+start_date = '20170701'  # for weight_opt 
 end_date = '20211231'
+start_date = '20211201'  # fpr test 
 
 return_type_list =  ['c2next_c'] # ['o2next_o', 'c2next_o', 'o2c', 'c2next_c']
 
@@ -94,8 +96,8 @@ style_low_limit = -0.4  # 风格中性因子敞口  # TODO: 放0.5以内
 style_high_limit = 0.4
 
 ind_neutralize = True  # 行业中性约束
-ind_low_limit = -0.1 # 行业中性因子敞口
-ind_high_limit = 0.1
+ind_low_limit = -0.3 # 行业中性因子敞口
+ind_high_limit = 0.3
 
 turnover_constraint = True  # 换手率约束
 turnover_limit = 0.4
@@ -107,7 +109,20 @@ penalty_xi = 1       # 模型错位风险惩罚  # 仅在method 4 中使用
 
 qp_method = 1  # 目标函数和限制方法
 
-adj_method = '_NW1_4_Eigen_struc_240_bs_vol60_20'  # 读取对应调整方法的协方差矩阵 '_NW3', '_Eigen_bs_vol', 目前均使用'_NW1_4_Eigen_bs_vol60_20'
+# compute name 
+adj_method = '_'
+if N_W: 
+    adj_method += f'NW{pred_period}_{D}' + '_'
+if eigen_adj: 
+    adj_method += 'Eigen' + '_'
+if struc_adj:
+    adj_method += f'struc_{h_struc}' + '_'
+if bs_adj:
+    adj_method += f'bs' + '_'
+if vol_adj:
+    adj_method += f'vol{h_vol}_{tau_vol}' + '_'
+adj_method = adj_method[:-1] # exclude trailing _
+# adj_method = '_NW1_4_Eigen_struc_240_bs_vol60_20'  # 读取对应调整方法的协方差矩阵 '_NW3', '_Eigen_bs_vol', 目前均使用'_NW1_4_Eigen_bs_vol60_20'
 
 
 
