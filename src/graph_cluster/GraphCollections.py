@@ -49,16 +49,22 @@ CN_FONT = 'Heiti TC'
 
 class GeneralGraph:
 
-    def __init__(self, return_df: pd.DataFrame, num_clusters: int=10) -> None:
+    def __init__(
+            self, 
+            return_df: pd.DataFrame,
+            num_clusters: int=10,
+            clustering_type: str=None,
+            filter_mode: int=None,
+        ) -> None:
         # load data 
         self.return_df = return_df
         self.num_clusters = num_clusters
         self.is_graph = True  # True for AG, MST, PMFG, False for RMT 
-        self.clustering_type = cfg.clustering_type
+        self.clustering_type = cfg.clustering_type if clustering_type is None else clustering_type
 
         # compute similarity 
         self.similarity_metric = cfg.similarity_metric
-        self.filter_mode = cfg.filter_mode
+        self.filter_mode = cfg.filter_mode if filter_mode is None else filter_mode
         self.compute_similarity()
     
     def compute_similarity(self):
@@ -187,8 +193,13 @@ class GeneralGraph:
 # ===================================
 class AG(GeneralGraph):
 
-    def __init__(self, return_df: pd.DataFrame, num_clusters: int = 10) -> None:
-        super().__init__(return_df, num_clusters)
+    def __init__(self,
+                 return_df: pd.DataFrame,
+                 num_clusters: int = 10,
+                 clustering_type: str = None,
+                 filter_mode: int = None
+                 ) -> None:
+        super().__init__(return_df, num_clusters, clustering_type=clustering_type, filter_mode=filter_mode)
         assert self.similarity_metric == 'cor', 'Asset Graph Only Accepts Correlation Matrix'  
     
     def build_graph(self) -> nx.Graph: 
@@ -216,8 +227,15 @@ class AG(GeneralGraph):
 
 class MST(GeneralGraph):
 
-    def __init__(self, return_df: pd.DataFrame, num_clusters: int = 10) -> None:
-        super().__init__(return_df, num_clusters=num_clusters)
+    def __init__(self,
+                 return_df: pd.DataFrame,
+                 num_clusters: int = 10,
+                 clustering_type: str = None,
+                 filter_mode: int = None
+                 ) -> None:
+        super().__init__(return_df, num_clusters,
+                         clustering_type=clustering_type, filter_mode=filter_mode)
+
     
     def build_graph(self) -> nx.Graph:
         """ build MST (Kruskal's Algorithm) """
@@ -254,8 +272,15 @@ class MST(GeneralGraph):
 
 class PMFG(GeneralGraph):
 
-    def __init__(self, return_df: pd.DataFrame, num_clusters: int = 10) -> None:
-        super().__init__(return_df, num_clusters)
+    def __init__(self,
+                 return_df: pd.DataFrame,
+                 num_clusters: int = 10,
+                 clustering_type: str = None,
+                 filter_mode: int = None
+                 ) -> None:
+        super().__init__(return_df, num_clusters,
+                         clustering_type=clustering_type, filter_mode=filter_mode)
+
     
     def build_graph(self) -> nx.Graph:
         """ 
@@ -302,4 +327,4 @@ class PMFG(GeneralGraph):
 #         super().__init__(return_df, num_clusters)
 #         self.is_graph = False  # for RMT 
 
-    
+

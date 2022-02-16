@@ -379,9 +379,9 @@ class WeightOptimizer():
             X_ind_holding = self.ind_df.T[holding_stock_list]
         else:
             X_ind_holding = self.dynamic_ind_data_ohe(date, holding_stock_list).T
+            benchmark_stock_ind = self.dynamic_ind_data_ohe(date, benchmark_stock_list).T
         X_style_benchmark = X_style.T[benchmark_stock_list].fillna(0)
         benchmark_current_weight = self.benchmark_index_weight[date][self.benchmark_index_weight[date].notna()]
-        benchmark_stock_ind = self.dynamic_ind_data_ohe(date, benchmark_stock_list).T
 
         # start loop
         status = False

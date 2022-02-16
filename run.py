@@ -48,6 +48,7 @@ other modules:
 
 # load packages 
 import sys
+import argparse
 
 # =========================
 # ------- module ----------
@@ -109,7 +110,19 @@ def graph_clustering_train():
     """ train graph clusters """
     from src.graph_cluster.IndustryTrainer import IndustryTrainer
 
-    industry_trainer = IndustryTrainer()
+    parser = argparse.ArgumentParser(description="graph clustering config")
+    parser.add_argument('--graph_type', default=None, choices=['AG', 'MST', 'PMFG'], help='type of graph')
+    parser.add_argument('--num_clusters', type=int, default=None, help='number of clusters')
+    parser.add_argument('--clustering_type', default=None, choices=['single_linkage', 'spectral', 'node2vec', 'sub2vec'], help='type of clustering')
+    parser.add_argument('--filter_mode', default=None, type=int, choices=[0, 1, 2], help='filter noise mode')
+    args, _ = parser.parse_known_args()
+
+    industry_trainer = IndustryTrainer(
+        graph_type=args.graph_type,
+        num_clusters=args.num_clusters,
+        clustering_type=args.clustering_type,
+        filter_mode=args.filter_mode
+    )
     industry_trainer.run()
 
 # =======================

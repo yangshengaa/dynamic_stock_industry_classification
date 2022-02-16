@@ -29,14 +29,36 @@ TRAIN_TEST_DATES_PATH = 'out/train_test_dates'
 
 class IndustryTrainer:
 
-    def __init__(self) -> None:
+    def __init__(
+        self, 
+        graph_type: str = None, 
+        num_clusters: int = None,
+        clustering_type: str = None, 
+        filter_mode: int = None
+    ) -> None:
         # init dataserver 
         self.ds = PqiDataSdkOffline()
         # load config 
-        self.graph_type = cfg.graph_type
-        self.filter_mode = cfg.filter_mode
-        self.clustering_type = cfg.clustering_type
-        self.num_clusters = cfg.num_clusters
+        if graph_type is None: 
+            self.graph_type = cfg.graph_type
+        else: 
+            self.graph_type = graph_type 
+        
+        if filter_mode is None: 
+            self.filter_mode = cfg.filter_mode
+        else: 
+            self.filter_mode = filter_mode 
+        
+        if clustering_type is None:
+            self.clustering_type = cfg.clustering_type
+        else: 
+            self.clustering_type = clustering_type 
+        
+        if num_clusters is None: 
+            self.num_clusters = cfg.num_clusters
+        else: 
+            self.num_clusters = num_clusters
+        
         self.stock_pool = cfg.stock_pool
 
         # read index mask 
@@ -56,9 +78,9 @@ class IndustryTrainer:
         # base 
         name = f'{self.stock_pool}_{self.num_clusters}_{self.graph_type}_{self.filter_mode}_{self.clustering_type}_'
         # add vector embedding params
-        if self.clustering_type == 'Node2Vec':
+        if self.clustering_type == 'node2vec':
             name += '_'.join([str(x) for x in cfg.node2vec_rw_params.values()] + [str(x) for x in cfg.node2vec_word2vec_params.values()])
-        elif self.clustering_type == 'Sub2Vec':
+        elif self.clustering_type == 'sub2vec':
             name += '_'.join(
                 [str(cfg.sub2vec_walk_length), str(cfg.num_hops), str(cfg.sub2vec_mode)] 
               + [str(x) for x in cfg.sub2vec_params.values()]
@@ -130,7 +152,12 @@ class IndustryTrainer:
         print(f'number of member/non-member stocks: {len(member_stock_list)}, {len(nonmember_stock_list)}')
 
         # feed into tree model 
-        graph = self.graph_model(member_stock_return_df, num_clusters=self.num_clusters)
+        graph = self.graph_model(
+            member_stock_return_df, 
+            num_clusters=self.num_clusters,
+            clustering_type=self.clustering_type,
+            filter_mode=self.filter_mode
+        )
         label_dict = graph.detect_community()
 
         print(f'write to {test_dates[0]} - {test_dates[-1]}, taking {time.time() - start:.3f}s\n')

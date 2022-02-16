@@ -31,7 +31,7 @@ num_clusters = 10
 clustering_type = 'spectral'   
 
 # filter information {0: raw, 1: keep large eigenvalues; 2: keep large but market mode}
-filter_mode = 2
+filter_mode = 0
 
 # =============================
 #        stock related       
