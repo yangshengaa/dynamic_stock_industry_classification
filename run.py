@@ -108,22 +108,46 @@ def portfolio_optimization_weight():
 # ----- graph clustering ------
 def graph_clustering_train():
     """ train graph clusters """
-    from src.graph_cluster.IndustryTrainer import IndustryTrainer
+    from src.graph_cluster.IndustryTrainer import IndustryTrainer, MultiIndustryTrainer
 
     parser = argparse.ArgumentParser(description="graph clustering config")
+    # single
     parser.add_argument('--graph_type', default=None, choices=['AG', 'MST', 'PMFG'], help='type of graph')
     parser.add_argument('--num_clusters', type=int, default=None, help='number of clusters')
     parser.add_argument('--clustering_type', default=None, choices=['single_linkage', 'spectral', 'node2vec', 'sub2vec'], help='type of clustering')
     parser.add_argument('--filter_mode', default=None, type=int, choices=[0, 1, 2], help='filter noise mode')
+    # multi 
+    parser.add_argument('--use_multi', type=bool, default=False, choices=[True, False], help='whether to train multiple labels at a time')
+    parser.add_argument('--multi_num_clusters', 
+        type=int,
+        nargs='+', 
+        default=[5, 10, 20, 30, 40, 60], 
+        help='multiple num clusters'
+    )
+    parser.add_argument('--multi_clustering_type', 
+        type=str,
+        nargs='+',
+        default=['spectral', 'node2vec', 'sub2vec'],
+        help='multiple clustering type'
+    )
     args, _ = parser.parse_known_args()
 
-    industry_trainer = IndustryTrainer(
-        graph_type=args.graph_type,
-        num_clusters=args.num_clusters,
-        clustering_type=args.clustering_type,
-        filter_mode=args.filter_mode
-    )
-    industry_trainer.run()
+    if not args.use_multi: 
+        industry_trainer = IndustryTrainer(
+            graph_type=args.graph_type,
+            num_clusters=args.num_clusters,
+            clustering_type=args.clustering_type,
+            filter_mode=args.filter_mode
+        )
+        industry_trainer.run()
+    else:
+        industry_trainer = MultiIndustryTrainer(
+            graph_type=args.graph_type,
+            num_clusters=args.multi_num_clusters,
+            clustering_type=args.multi_clustering_type,
+            filter_mode=args.filter_mode
+        )
+        industry_trainer.run()
 
 # =======================
 # ------ others ---------
