@@ -439,6 +439,7 @@ class ModifiedLouvain:
                 index=similarity_df.index
             )
             filtered_df = filtered_df * na_mask  # add back mask
+            filtered_df = filtered_df.applymap(lambda x: np.real(x))  # keep real for each entry
 
         return filtered_df
         

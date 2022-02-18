@@ -54,7 +54,7 @@ node2vec_rw_params = {
 }
 # for word2vec
 node2vec_word2vec_params = {
-    'vector_size': 20,  # embedding dimensions
+    'vector_size': 100,  # embedding dimensions
     'window': 5,        # maximum distance between a word and the prediction
     'min_count': 0,     # ignore all words below this frequency
     'sg': 1,            # 1 for skip-gram, 0 for CBOW
@@ -67,7 +67,7 @@ sub2vec_walk_length =  5   # length of the random walk
 num_hops = 2               # number of hops for neighbors
 sub2vec_mode = 3           # fyi 1: neighbor; 2: structural; 3: concat both
 sub2vec_params = {
-    'vector_size': 10,  # embedding dimensions 
+    'vector_size': 100,  # embedding dimensions 
     'window': 5,        # maximum distance between a word and the prediction
     'dm': 1,            # 1 for dm and 0 for DBOW
     'epochs': 1,        # number of times passing through the dataset

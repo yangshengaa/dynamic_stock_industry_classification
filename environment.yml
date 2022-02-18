@@ -1,4 +1,4 @@
-name: base
+name: finance-base
 channels:
   - pyg
   - conda-forge

@@ -41,6 +41,7 @@ logging.basicConfig(
 
 # set chinese font 
 CN_FONT = 'Heiti TC'
+EPS = 1e-15
 
 
 # =================================== 
@@ -90,8 +91,10 @@ class GeneralGraph:
             # single linkage does not depend on graph, so no graph needed
             # compute distance frm similarity
             logging.warning('distance measures in single linkage only take correlation')
+            # enforce correlation after filtering
+            cutoff_similarity_df = self.similarity_df.clip(lower=-1 + EPS, upper=1 - EPS) 
             # assumption is that nan means uncorrelated
-            distance_df = np.sqrt(2 * (1 - self.similarity_df.fillna(0)))
+            distance_df = np.sqrt(2 * (1 - cutoff_similarity_df.fillna(0)))
             # if fillna on diag, make sure to turn it back to 0
             distance_df = distance_df - np.diag(np.diag(distance_df))
 
