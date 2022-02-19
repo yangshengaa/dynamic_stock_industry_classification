@@ -208,7 +208,7 @@ class AG(GeneralGraph):
     def build_graph(self) -> nx.Graph: 
         """ build asset graph """
         # set up parameters 
-        tau = 10   # 2 in the original paper, but for T = 240, this may be better
+        tau = 3   # 2 in the original paper, but for T = 240, this may be better
         T = self.return_df.shape[1]
         C_tau = (np.exp(2 * tau / np.sqrt(T - 3)) - 1) / (np.exp(2 * tau / np.sqrt(T - 3)) + 1)  # threshold 
 

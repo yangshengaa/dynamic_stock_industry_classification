@@ -67,7 +67,6 @@ __pycache__/
 .gitignore
 
 # docker 
-Dockerfile
 report.*
 report/
 submission.json
