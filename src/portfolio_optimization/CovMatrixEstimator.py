@@ -294,7 +294,7 @@ class CovMatrixEstimator:
         e_true_values, e_true_vectors = eigh(curr_factor_cov)
 
         # bootstrap
-        bootstrap_num = 10000  # boostrap数量
+        bootstrap_num = 500  # boostrap数量
         dev = np.zeros((bootstrap_num, factor_num))
         
         for m in range(bootstrap_num):

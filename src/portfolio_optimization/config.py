@@ -18,8 +18,8 @@ fig_save_path = 'out/risk_fig/'
 ml_factor_path = 'data/features/ml_factors' # predicted return path
 index_member_stock_path = 'data/parsed/index_stock_weight'
 
-# start_date = '20150105'  # for fac_ret and cov_est
-start_date = '20170701'  # for weight_opt 
+start_date = '20150105'  # for fac_ret and cov_est
+# start_date = '20170701'  # for weight_opt 
 end_date = '20211231'
 # start_date = '20211201'  # for test 
 
@@ -77,17 +77,16 @@ lam_vol = 0.5 ** (1/tau_vol)   # 波动率偏误调整 EWMA权重
 
 # —————— portfolio optimization ——————
 # TODO: use a different signal and ml factor
-# input_signal_df_name = 'xgb_agg.csv'  # 输入信号名字，信号格式为0/1 
-# input_signal_df_name = 'lgb_161227_211231_240_40_202201240953_Regressor_zz1000_fmv_100_1/long_0'
-input_signal_df_name = 'lr_bm_161227_211231_240_40_202201241841_Regressor_linear_0_rolling_zz1000_fmv_100_1/long_0'
+# 输入信号名字，信号格式为0/1 
+input_signal_df_name = 'lgb_161227_211231_240_40_202201240953_Regressor_zz1000_fmv_100_1/long_0'
+# input_signal_df_name = 'lr_bm_161227_211231_240_40_202201241841_Regressor_linear_0_rolling_zz1000_fmv_100_1/long_0'
 obj_func = 'ret_var' # 目标函数：min_var (最小方差)/ ret_var (均值-方差优化)
 
 weight_low = 0.001   # 权重下限
 weight_high = 0.05  # 权重上限
 
-# ml_factor_name = 'xgb_161227_201231_240_40_202109090912_Regressor'
-# ml_factor_name = 'lgb_161227_211231_240_40_202201240953_Regressor'
-ml_factor_name = 'lr_bm_161227_211231_240_40_202201241841_Regressor_linear_0_rolling'
+ml_factor_name = 'lgb_161227_211231_240_40_202201240953_Regressor'
+# ml_factor_name = 'lr_bm_161227_211231_240_40_202201241841_Regressor_linear_0_rolling'
 
 benchmark_index = 'zz1000'  # 风格行业中性约束的基准指数
 

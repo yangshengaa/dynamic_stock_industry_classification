@@ -1,12 +1,10 @@
 # PortfolioWeightOptimizer
 
-FactorReturnGenerator: 计算因子收益率和特质收益率
+FactorReturnGenerator: Compute Factor Returns and Idiosyncratic returns 计算因子收益率和特质收益率
 
-CovMatrixEstimator: 计算因子收益率和特质收益率协方差矩阵
+CovMatrixEstimator: Estimate covariance matrix for factors and idio 计算因子收益率和特质收益率协方差矩阵
 
-WeightOptimizer: 计算优化持仓权重
-
-PlotRisk: 比较预测风险和实际风险
+WeightOptimizer: optimize weight 计算优化持仓权重
 
 TODO: 补充readme
 

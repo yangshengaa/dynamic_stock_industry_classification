@@ -87,15 +87,41 @@ def factor_combination():
 def portfolio_optimization_fac_ret():
     """ run factor return generation """
     from src.portfolio_optimization.FactorReturnGenerator import FactorReturnGenerator
+    
+    # accept arguments for meta control 
+    parser = argparse.ArgumentParser(description='portfolio optimization factor return estimation config')
+    parser.add_argument('--use_dynamic_ind', type=bool, default=None, help='whether to use dynamic industry')
+    parser.add_argument('--dynamic_ind_name', default=None, help='name of the dynamic industry')
+    args, _ = parser.parse_known_args()
 
+    # init 
     loading_process = FactorReturnGenerator()
+    # change config 
+    if not args.use_dynamic_ind is None: 
+        loading_process.use_dynamic_ind = args.use_dynamic_ind
+    if not args.dynamic_ind_name is None:
+        loading_process.dynamic_ind_name = args.dynamic_ind_name
+    # run 
     loading_process.start_cal_return_process()
 
 def portfolio_optimization_cov_est():
     """ run covariance estimation """
     from src.portfolio_optimization.CovMatrixEstimator import CovMatrixEstimator
 
+    # accept arguments for meta control 
+    parser = argparse.ArgumentParser(description='portfolio optimization factor return estimation config')
+    parser.add_argument('--use_dynamic_ind', type=bool, default=None, help='whether to use dynamic industry')
+    parser.add_argument('--dynamic_ind_name', default=None, help='name of the dynamic industry')
+    args, _ = parser.parse_known_args()
+
+    # init 
     calculating_process = CovMatrixEstimator()
+    # change config 
+    if not args.use_dynamic_ind is None:
+        calculating_process.use_dynamic_ind = args.use_dynamic_ind
+    if not args.dynamic_ind_name is None: 
+        calculating_process.dynamic_ind_name = args.dynamic_ind_name
+    # run
     calculating_process.start_cal_cov_process()
 
 def portfolio_optimization_weight():
