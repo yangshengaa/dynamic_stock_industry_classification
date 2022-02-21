@@ -32,7 +32,6 @@ Portfolio Optimization
 - 'opt_weight': optimize weight
     - config in 'portfolio_optimizer/config.py'
 
-
 Graph Clustering 
 
 - 'cluster_train': train graph clustering
@@ -90,6 +89,8 @@ def portfolio_optimization_fac_ret():
     
     # accept arguments for meta control 
     parser = argparse.ArgumentParser(description='portfolio optimization factor return estimation config')
+    parser.add_argument('--start_date', default=None, help='start date to estimate returns')
+    parser.add_argument('--end_date', default=None, help='end date to estimate returns')
     parser.add_argument('--use_dynamic_ind', type=bool, default=None, help='whether to use dynamic industry')
     parser.add_argument('--dynamic_ind_name', default=None, help='name of the dynamic industry')
     args, _ = parser.parse_known_args()
@@ -97,6 +98,10 @@ def portfolio_optimization_fac_ret():
     # init 
     loading_process = FactorReturnGenerator()
     # change config 
+    if not args.start_date is None:
+        loading_process.start_date = args.start_date 
+    if not args.end_date is None:
+        loading_process.end_date = args.end_date
     if not args.use_dynamic_ind is None: 
         loading_process.use_dynamic_ind = args.use_dynamic_ind
     if not args.dynamic_ind_name is None:
@@ -110,6 +115,8 @@ def portfolio_optimization_cov_est():
 
     # accept arguments for meta control 
     parser = argparse.ArgumentParser(description='portfolio optimization factor return estimation config')
+    parser.add_argument('--start_date', default=None, help='start date to estimate covariance')
+    parser.add_argument('--end_date', default=None, help='end date to estimate covariance')
     parser.add_argument('--use_dynamic_ind', type=bool, default=None, help='whether to use dynamic industry')
     parser.add_argument('--dynamic_ind_name', default=None, help='name of the dynamic industry')
     args, _ = parser.parse_known_args()
@@ -117,6 +124,10 @@ def portfolio_optimization_cov_est():
     # init 
     calculating_process = CovMatrixEstimator()
     # change config 
+    if not args.start_date is None:
+        calculating_process.start_date = args.start_date 
+    if not args.end_date is None:
+        calculating_process.end_date = args.end_date
     if not args.use_dynamic_ind is None:
         calculating_process.use_dynamic_ind = args.use_dynamic_ind
     if not args.dynamic_ind_name is None: 

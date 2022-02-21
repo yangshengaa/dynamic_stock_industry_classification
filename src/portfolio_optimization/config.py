@@ -18,7 +18,8 @@ fig_save_path = 'out/risk_fig/'
 ml_factor_path = 'data/features/ml_factors' # predicted return path
 index_member_stock_path = 'data/parsed/index_stock_weight'
 
-start_date = '20150105'  # for fac_ret and cov_est
+# start_date = '20150105'  # for cov_est
+start_date = '20160101'  # for cov_est
 # start_date = '20170701'  # for weight_opt 
 end_date = '20211231'
 # start_date = '20211201'  # for test 
@@ -41,8 +42,8 @@ class_name = [
 ] 
 
 # dynamic industry 
-use_dynamic_ind = False 
-dynamic_ind_name = 'zz1000_10_MST_2_spectral_'  # subfolder of this name in the output 
+use_dynamic_ind = True 
+dynamic_ind_name = 'zz1000_10_MST_0_spectral_'  # subfolder of this name in the output 
 
 # —————— cov estimation parameters —————
 h = 240   # sample 240

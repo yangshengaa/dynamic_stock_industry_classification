@@ -101,7 +101,6 @@ class CovMatrixEstimator:
         factor_return = pd.read_feather('{}/Factor_return_{}_'.format(ret_save_path, return_type)).set_index('index')
         idio_return = pd.read_feather('{}/Idio_return_{}_'.format(ret_save_path, return_type)).set_index('index')
         factor_return.index = factor_return.index.astype(int)
-        idio_return.index = idio_return.index.astype(int)
 
         # algin tickers
         idio_return.index = [str(x) for x in idio_return.index]
@@ -168,51 +167,6 @@ class CovMatrixEstimator:
     # ================= 原始协方差估计 ===================================
     # ===================================================================
 
-    # @staticmethod
-    # def raw_cov_est_each_period(
-    #     f_current, 
-    #     idio_current, 
-    #     weight,
-    #     N_W,
-    #     h, 
-    #     D,
-    #     pred_period
-    # ):
-    #     """
-    #     子进程: 因子收益率和特质收益率原始协方差矩阵计算
-    #     """
-    #     # 因子收益率
-    #     f_current_weighted = f_current * weight 
-    #     f_current_demeaned = f_current - f_current_weighted.mean()
-    #     factor_cov = (f_current_demeaned * weight).T @ f_current_demeaned
-
-    #     if N_W:
-    #         for delta in range(1, D + 1):
-    #             adjusted_factor_cov_D = (f_current_demeaned[delta:] * weight[delta:]).T @ f_current_demeaned[:-delta]
-    #             factor_cov = factor_cov + (1 - delta / (D + 1)) * (adjusted_factor_cov_D + adjusted_factor_cov_D.T)
-    #             # 此处的调整的权重为Bartlett Taper, 可以调整为其他 (any weight function with a nonnegative spectral density estimate)
-    #         factor_cov = factor_cov * pred_period 
-
-    #     # Check for psd  
-    #     # print(date_list[current_t - 1])
-    #     # print(np.min(scipy.linalg.eigh(factor_cov)[0]))
-
-    #     # 特质收益率
-    #     idio_current_weighted = idio_current * weight 
-    #     idio_nan_mask = np.isnan(idio_current_weighted).sum(axis=0) > (h - 50)  # 仅当至少有50个非nan的票的时候才有数
-    #     idio_current_demeaned = idio_current - np.nanmean(idio_current_weighted, axis=0)
-    #     idio_var = np.nansum(weight * idio_current_demeaned * idio_current_demeaned, axis=0)
-    #     idio_var[idio_nan_mask] = np.nan
-
-    #     if N_W:
-    #         for delta in range(1, D + 1):
-    #             idio_var_adjust = np.nansum(weight[delta:] * idio_current_demeaned[delta:] * idio_current_demeaned[:-delta], axis=0)
-    #             idio_var = idio_var + (2 * idio_var_adjust) * (1 - delta / (D + 1)) 
-    #         idio_var[idio_var < 0] = 0  # 相当于投影到最近的psd对角矩阵  # TODO: 不能确保>=0（有无更好的处理方式？）
-    #         idio_var = idio_var * pred_period 
-    #     return factor_cov, idio_var
-    
-
     def raw_cov_est(self, return_type):
         """ 因子收益率和特质收益率raw协方差矩阵计算(采用EWMA加权) """
         # 统一储存格式 str不是int
@@ -244,6 +198,12 @@ class CovMatrixEstimator:
             # 提取当前rolling期内的相关数据
             f_current = factor_return_df[(current_t - self.h):current_t].values
             idio_current = idio_return_df[(current_t - self.h):current_t].values
+
+            # if all nan, skip to speed up 
+            if np.isnan(f_current).all() and np.isnan(idio_current).all():
+                temp_factor_cov[self.date_list_cov[current_t - 1]] = factor_cov   
+                temp_idio_var[self.date_list_cov[current_t - 1]] = pd.DataFrame([idio_var], columns=idio_return_df.columns)
+                continue
 
             # 因子收益率
             f_current_weighted = f_current * weight 
@@ -291,6 +251,10 @@ class CovMatrixEstimator:
         :param curr_factor_cov: 当前期内的蒙特卡罗模拟拟调整的矩阵
         :return 调整完的矩阵
         """
+        # speed hack: if all nan, return itself, as if not adjusted
+        if np.isnan(curr_factor_cov).all():
+            return curr_factor_cov
+        
         e_true_values, e_true_vectors = eigh(curr_factor_cov)
 
         # bootstrap
