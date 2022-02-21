@@ -14,7 +14,7 @@ categories: main
 
 Stocks are classified into different sectors (Energy, Finance, Health Care, etc), and stocks within the same sectors are assumed to have similar behaviors (movement patterns and risk profiles). Fund managers worldwide demand a precise classification to control portfolio sector exposures and thus minimize risks brought by some specific sectors. This could be considered a sector-level diversification.  
 
-The most widely used industry classifications are [China CITIC (中信)](http://www.cs.ecitic.com/newsite/) and [SWS Research (申万宏源)](http://www.swsindex.com/idx0530.aspx) for China A-share. They provide a professional guideline for a long-term stock industry classification. However, the classification is fixed and fails to capture short-term correlations between stocks in different sectors, and thus fails to embody short-term co-movement risks between conventionally unrelated stocks. For example, company A in finance sector and company B in energy sector are typically considered uncorrelated. Due to a recent announcement of cooperation, their stock prices started to behave similarly. This particular risk could hardly be hedged against if the fund manager use a fixed industry classification scheme.  
+The most widely used industry classifications are [China CITIC (中信)](http://www.cs.ecitic.com/newsite/) and [SWS Research (申万宏源)](http://www.swsindex.com/idx0530.aspx) for China A-share. They provide a professional guideline for a long-term stock industry classification. However, the classification is fixed and fails to capture short-term correlations between stocks in different sectors, and thus fails to embody short-term co-movement risks between conventionally unrelated stocks. For example, China CITIC Bank (601998, 中信银行) in finance sector and Contemporary Amperex Technology (300750 宁德时代, a firm focusing on Lithium battery) in manufacturing sector are typically considered uncorrelated. Due to a recent announcement of cooperation in 2020, their stock prices started to behave similarly in a short term. This particular risk could hardly be hedged against if the fund manager use a fixed industry classification scheme.  
 
 Therefore, a dynamic industry classification is much more recommended for institutional traders, especially hedge fund portfolio managers on low-frequency trading strategies (change stock holdings each day, for instance).  
 
@@ -27,11 +27,11 @@ Therefore, a dynamic industry classification is much more recommended for instit
 
 ## Graph Formulation
 
-To re-classify stocks from stock data, we believe that graph helps filter information and compare otherwise hard-to-contrast variables (price movements in this case) to obtain hidden embeddings of industry information. In a nutshell, two stocks are connected if they demonstrate a strong correlation over the given observation time period, and by that connectivity we may partition the graph and obtain communities.
+To create a dynamic stock classification from market data, we believe that graph techniques may help filter information and naturally represent industry information in their dense graph embeddings. In a nutshell, two stocks are connected if they demonstrate a strong correlation over the given observation time period, and by that connectivity we may partition the graph and obtain communities.
 
 ### Build Graph from Financial Data
 
-We would like to build a graph whose nodes are stocks and edges are indicators of connectivity. Suppose there are $N$ tradable assets and $T$ days for observation, we take the time-series correlation among stocks as a criteria to add edges <sup>[[1]](#1)</sup>.
+We would like to build a graph whose nodes are stocks and edges are indicators of connectivity. Suppose there are $N$ tradable assets and $T$ days for observation, we take the time-series correlation among stocks as a criteria to add edges<sup>[[1]](#1)</sup>.
 
 To compute the time-series correlation, suppose $s_{i,t}$ is the (close) price of asset $i$ at time $t \in \{1, ..., T\}$, then the daily return is $r_{i, t} = \frac{s_{i, t} - s_{i, t - 1}}{s_{i, t - 1}}$ ($t$ starts from 2, which means there are only $T - 1$ returns). Then for any $i, j$, the time-series correlation is thus given by
 
@@ -39,7 +39,7 @@ $$
 \rho_{ij} = \frac{\sum_{t=2}^T (r_{i, t} - \bar{r}_i)(r_{j, t} - \bar{r}_j) }{\sqrt{[\sum_{t=2}^T (r_{i, t} - \bar{r}_i)^2] [\sum_{t=2}^T (r_{j, t} - \bar{r}_j)^2]}}
 $$
 
-where $\bar{r}_i = \frac{\sum_{t=2}^T r_{i, t}}{T - 1}$ . This could be considered as the "weight" of the edge between stock $i$ and stock $j$. One sometimes need to convert weights to distance between two nodes, and a naive form is give by
+where $\bar{r}_i = \frac{r_{i,2} +r_{i,3} + ... + r_{i, T}}{T - 1}$. This could be considered as the "weight" of the edge between stock $i$ and stock $j$. One sometimes need to convert weights to distance between two nodes, and a naive form is give by
 
 $$
 d_{ij} = \sqrt{2 (1 - \rho_{ij})}
@@ -47,10 +47,11 @@ $$
 
 Given the similarity measures (correlation) and distance measures, we may build graphs by using the following methods:
 
-- **Asset Graph (AG)**: connect if $ \|\rho_{ij}\| $ is beyond a pre-defined threshold;  
-- **Minimum Spanning Tree (MST)**: sort all $\rho_{ij}$ in a descending order, add the edge if after addition the graph is still a forest or a tree (Kruskal's Algorithm);  
-* **Planar Maximally Filter Graph (PMFG)**<sup>[[2]](#2)</sup>: simiilar to MST, but add edge if after addition the graph is still planar;
-- **Random Matrix Theory (RMT)**: select information from the correlation matrix and feed back to the previous three models as a refinement.
+* **Asset Graph (AG)**<sup>[[3]](#3)</sup>: connect if $ \|\rho_{ij}\| $ is beyond a pre-defined threshold. Asset graph encapsulate global structure well but fails to capture local ones.
+* **Minimum Spanning Tree (MST)**<sup>[[8]](#8)</sup><sup>[[9]](#9)</sup>: sort all $\rho_{ij}$ in a descending order, add the edge if after addition the graph is still a forest or a tree (Kruskal's Algorithm). MST matches the understanding of investors on the market, where risk propagate from a central node to others<sup>[[6]](#6)</sup>, but is well-known to be unstable across time.
+* **Planar Maximally Filter Graph (PMFG)**<sup>[[2]](#2)</sup><sup>[[4]](#4)</sup><sup>[[5]](#5)</sup>: simiilar to MST, but add edge if after addition the graph is still planar.  This adds more stability to MST, but may be a little harder to train.
+
+In addition, **Random Matrix Theory (RMT)**<sup>[[3]](#3)</sup><sup>[[7]](#7)</sup> selects information from the correlation matrix and feed back to the previous three models as a refinement.
 
 In this project we use all four types in our experiment.
 
@@ -58,10 +59,10 @@ In this project we use all four types in our experiment.
 
 To control the number of industry, we pick algorithms that help generate a prescribed number of clusters. The following are implemented:
 
-- **Spectral Clustering**
-- **Average Linkage Clustering**
-- **Node2Vec + KMeans**: conduct KMeans on Node2Vec embeddings;
-- **Sub2Vec + KMeans**: conduct KMeans on Sub2Vec embeddings.
+* **Spectral Clustering**
+* **Average Linkage Clustering**
+* **Node2Vec<sup>[[10]](#10)</sup> + KMeans**: conduct KMeans on Node2Vec embeddings;
+* **Sub2Vec<sup>[[11]](#11)</sup> + KMeans**: conduct KMeans on Sub2Vec embeddings.
 
 ### Graph Evaluation
 
@@ -69,10 +70,10 @@ To evaluate if the re-constructed classification is "good", we go through the en
 
 We focus on the following four metrics to measure performance:
 
-- excess return: the excess return of the strategy with respect to the index / market;
-- max drawdowns: max decrease of the portfolio in value;
-- turnover: measure the rate of invested stocks being replaced by new ones;
-- AlphaSharpeRatio: return / volatility, measure the ability of maximizing returns over risk.
+* excess return: the excess return of the strategy with respect to the index / market;
+* max drawdowns: max decrease of the portfolio in value;
+* turnover: measure the rate of invested stocks being replaced by new ones;
+* AlphaSharpeRatio: return / volatility, measure the ability of maximizing returns over risk.
 
 The dynamic property is done by a rolling-based train test schemed outlined as follows: we train the graph using $T_{train} = 240$ days and test the performance of the graph in the following $T_{test} = 40$ days. Then we move forward $T_{test}$ days to retrain the graph. Note that the test periods are not overlapping, and the train test periods are the same in the factor combination (machine learning) part of the low-frequency stock picking paradigm. We look at the metrics of the successive testing periods in our portfolio.
 
@@ -98,30 +99,34 @@ In this project, we will focus on a particular stock pool named zz1000 (中证10
 
 We also list the features available to compute alphafactors (for gathering excess returns) and risk factors (for controling porfolio risks). The meaning of these names is self-explanatory.
 
-- 'AdjFactor'
-- 'ClosePrice'
-- 'DownLimitPrice'
-- 'FloatMarketValue'
-- 'FloatShare'
-- 'HighestPrice'
-- 'IssueStatus'
-- 'LowestPrice'
-- 'OpenPrice'
-- 'PreClosePrice'
-- 'Price'
-- 'RangeRate'
-- 'STStatus'
-- 'SuspendStatus'
-- 'TotalMarketValue'
-- 'TradeStatus'
-- 'TradeValue'
-- 'TradeVolume'
-- 'TrueRange'
-- 'TurnoverRate'
-- 'UpDownLimitStatus'
-- 'UpLimitPrice'
-- 'VWAP'
-- 'TotalEquity'
+* Price:  
+  * 'AdjFactor'
+  * 'PreClosePrice'
+  * 'OpenPrice'
+  * 'ClosePrice'
+  * 'DownLimitPrice'
+  * 'UpLimitPrice'
+  * 'HighestPrice'
+  * 'LowestPrice'
+  * 'Price'
+  * 'VWAP'
+  * 'TrueRange'
+  * 'RangeRate'
+* Volume:
+  * 'TurnoverRate'
+  * 'TradeVolume'
+  * 'TradeValue'
+  * 'FloatMarketValue'
+  * 'FloatShare'
+  * 'TotalMarketValue'
+* Status:
+  * 'TradeStatus'
+  * 'IssueStatus'
+  * 'STStatus'
+  * 'SuspendStatus'
+  * 'UpDownLimitStatus'
+* Others:
+  * 'TotalEquity'
 
 ### Experiment Details
 
@@ -135,14 +140,14 @@ TODO: ...
 
 TODO: ...
 
-## Appendix: Low-Frequency Stock-Picking Precedure Breakdown
+## Appendix: Low-Frequency Stock-Picking Procedure Breakdown
 
-In low-frequency quantitative investment research, the central goal is to predict future daily returns as accurate as possible. There are the following four steps:
+In low-frequency quantitative investment research, the central goal is to predict future daily returns as accurate as possible. There are the following four steps<sup>[[12]](#12)</sup>:
 
-- **Mine Factors**: perform feature engineering on stock information to facilitate predicting future returns;  
-- **Combine Factors**: use machine learning algorithms to combine mined factors to predict future return;  
-- **Portfolio Sort/Backtest**: at each day, given the prediction, pick the top $M$ number of stocks with the highest returns from all tradable stocks ($M$ depends on the stock pool, in this project $M = 100$). Mimic this using the history data to test if the predictions are accurate;  
-- **Portfolio Optimization**: given the selected stocks, assign appropriate weights to each one to control the overall risk exposure (Industry Exposure, for instance).
+* **Mine Factors**: perform feature engineering on stock information to facilitate predicting future returns;  
+* **Combine Factors**: use machine learning algorithms to combine mined factors to predict future return;  
+* **Portfolio Sort/Backtest**: at each day, given the prediction, pick the top $M$ number of stocks with the highest returns from all tradable stocks ($M$ depends on the stock pool, in this project $M = 100$). Mimic this using the history data to test if the predictions are accurate;  
+* **Portfolio Optimization**: given the selected stocks, assign appropriate weights to each one to control the overall risk exposure (Industry Exposure, for instance).
 
 **In this project, we would like to use graph-based analysis to re-classify stocks and see if a dynamic industry classification could help improve portfolio optimization performance.** The performance is measured by overall returns and realized volatility given a tested timeframe.
 
@@ -179,7 +184,7 @@ With the model above, we would like to obtain the trained values for $\mathbb{\b
 
 For scalibility, we focus on LightGBM regressor. LinearRegressor is also included for performance comparison.
 
-### Porfolio Sort / Backtest
+### Portfolio Sort / Backtest
 
 With the trained model, we could now predict the returns for all tradable stocks tomorrow. Pick the top $M$ stocks ($M = 100$ in this project, and essentially this is picking one-tenth of the stocks from the pool of zz1000). $M$ should not be too small since our prediction may be wrong, capturing stocks not with the hightest returns; nor could $M$ be too large, since we may not have enough money to invest in all of them (there is a minimum purchase requirement per stock).
 
@@ -205,10 +210,10 @@ The objective function means we would like to maximize returns and minimize risk
 
 Each constraint comes with a different purpose:
 
-- **Holding Constraint**: no short-selling, so all weights shall be postive, and we don't want to over-invest in one stock, so there is also an upper limit for a single stock weight;
-- **Style Exposure**: style factors are also called risk factors, including Market-Cap, Momentum, and others. We would like its exposure to be controlled over time, and not using these factors to obtain excess returns;
-- **Industry Exposure**: prevent over-investing in a single industry. This is the place where an alternative dynamic classification is plugged in.
-- **Turnover Constraint**: limit the rate of replacement of the stocks to lower costs.
+* **Holding Constraint**: no short-selling, so all weights shall be positive, and we don't want to over-invest in one stock, so there is also an upper limit for a single stock weight;
+* **Style Exposure**: style factors are also called risk factors, including Market-Cap, Momentum, and others. We would like its exposure to be controlled over time, and not using these factors to obtain excess returns;
+* **Industry Exposure**: prevent over-investing in a single industry. This is the place where an alternative dynamic classification is plugged in.
+* **Turnover Constraint**: limit the rate of replacement of the stocks to lower costs.
 
 ## Acknowledgement
 
@@ -218,12 +223,42 @@ Special thanks to coworkers and my best friends at Shanghai Probability Quantita
 
 <a id="1">[1]</a>
 Gautier Marti, Frank Nielsen, Mikołaj Bińkowski, Philippe Donnat (2020).
-A review of two decades of correlations, hierarchies, networks and clustering in financial markets;
+A review of two decades of correlations, hierarchies, networks and clustering in financial markets.
 Signals and Communication Technology.
 
 <a id="2">[2]</a>
-Tumminello, M. and Aste, T. and Di Matteo, T. and Mantegna, R. N. (2005). 
+Tumminello, M. and Aste, T. and Di Matteo, T. and Mantegna, R. N. (2005).
 A tool for filtering information in complex systems.
 Proceedings of the National Academy of Sciences.
+
+<a id="3">[3]</a>
+Mel MacMahon, Diego Garlaschelli (2014). Community detection for correlation matrices. Physical Review X.
+
+<a id="4">[4]</a>
+Won-Min Song,T. Di Matteo,Tomaso Aste (2012). Hierarchical Information Clustering by Means of Topologically Embedded Graphs. PLoS ONE 7(3).
+
+<a id="5">[5]</a>
+Won-Min Song, T. Di Matteo, Tomaso Aste (2009). Nested hierarchies in planar graphs. Discrete Applied Mathematics.
+
+<a id="6">[6]</a>
+Amelie Hüttner, Jan-Frederik Mai and Stefano Mineo (2018). Portfolio selection based on graphs: Does it align with Markowitz-optimal portfolios? Dependence Modeling.
+
+<a id="7">[7]</a>
+V. Plerou, P. Gopikrishnan, B. Rosenow, L. A. N. Amaral, T. Guhr, H. E. Stanley (2001). A Random Matrix Approach to Cross-Correlations in Financial Data. Physical Review E.
+
+<a id="8">[8]</a>
+R. N. Mantegna (1999), Hierarchical structure in financial markets, The European Physical Journal B-Condensed Matter and Complex Systems 11.
+
+<a id="9">[9]</a>
+R. N. Mantegna, H. E. Stanley (1999). Introduction to econophysics: correlations and complexity in finance, Cambridge university press.
+
+<a id="10">[10]</a>
+Aditya Grover, Jure Leskovec (2016). node2vec: Scalable Feature Learning for Networks.
+
+<a id="11">[11]</a>
+Bijaya Adhikari, Yao Zhang, Naren Ramakrishnan, B. Aditya Prakash (2017). Distributed Representation of Subgraphs.
+
+<a id="12">[12]</a>
+石川, 刘洋溢, 连祥斌 (2020). 因子投资方法与实践.
 
 TODO: add more

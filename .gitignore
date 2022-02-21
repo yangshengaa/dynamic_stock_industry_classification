@@ -71,3 +71,7 @@ Dockerfile
 report.*
 report/
 submission.json
+environment*.yml
+
+# tasks  
+*.sh
