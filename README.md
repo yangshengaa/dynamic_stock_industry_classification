@@ -20,25 +20,32 @@ This project contains the following five modules:
 
 ## Data
 
-China A-Share stocks, the corresponding major index data (sz50, hs300, zz500, zz1000), and the member stock weights from 20150101 to 20211231, provided by Shanghai Probability Quantitative Investment.
+China A-Share stocks, the corresponding major index data (sz50, hs300, zz500, zz1000), and the member stock weights from 20150101 to 20211231, provided by [Shanghai Probability Quantitative Investment](http://www.probquant.cn/).
 
 ## Experiment Results
 
 **Stock Pool**: zz1000 member stocks  
 **Benchmark**: zz1000 index  
-**Time Period**: 20170101 - 20211231  
+**Time Period**: 20170701 - 20211231  
 
 | Model | AlphaReturn (cumsum) | AlphaSharpe | AlphaDrawdown | Turnover |
 | ----- | :---------------------: | :----------: | :-----------: | :------: |
-| LinearRegressor | 82.55 | 2.06 | -19.89 | 1.0 |
-| LgbmRegressor | 150.56 | 3.47 | -11.14 | 1.17 |
+| LinearRegressor | 71.58 | 1.92 | -19.84 | 1.01 |
+| LgbmRegressor | 145.64 | 3.65 | -11.58 | 1.21 |
 
 TODO: add stats after portfolio opt;  
 TODO: add graph improved model stats;
 
 ## Environment
 
-TODO : ...
+To run codes in this project, it is recommended to create an environment listed in the [environment.yml](environment.yml). If conda is installed, run:
+
+```bash
+conda env create -f environment.yml
+conda activate finance-base
+```
+
+Alternatively, one could also pull the corresponding docker image from [yangshengaa/finance-base](https://hub.docker.com/repository/docker/yangshengaa/finance-base) and then activate the finance-base environment using the latter conda command.
 
 ## Quick Start
 
@@ -47,7 +54,8 @@ It's very easy to use this platform!
 Tips:
 
 - run each module at a time, and run the following command sequentially;
-- change config for corresponding module in respective files (file location indicated inside [run.py](run.py)).
+- change config for corresponding module in respective files (file location indicated inside [run.py](run.py));
+- detailed running instructions, including a walkthrough of parameters in each modules, are in README of each module.
 
 To run each module, in current directory:
 
@@ -83,7 +91,7 @@ Currently risk attribution module is very slow and suboptimal. To be addressed l
 
 ## Acknowledgement
 
-Special thanks to coworkers and my best friends at Shanghai Probability Quantitative Investment: Beilei Xu, Zhongyuan Wang, Zhenghang Xie, Cong Chen, Yihao Zhou, Weilin Chen, Yuhan Tao, Wan Zheng, and many others. This project would be impossible without their data, insights, and experiences.
+Special thanks to coworkers and my best friends at [Shanghai Probability Quantitative Investment](http://www.probquant.cn/): Beilei Xu, Zhongyuan Wang, Zhenghang Xie, Cong Chen, Yihao Zhou, Weilin Chen, Yuhan Tao, Wan Zheng, and many others. This project would be impossible without their data, insights, and experiences.
 
 ## For Developer
 

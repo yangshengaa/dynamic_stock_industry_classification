@@ -8,11 +8,29 @@ WeightOptimizer: optimize weight 计算优化持仓权重
 
 TODO: 补充readme
 
+## Running Instructions
+
+To accommodate different trained industry, one may pass argument in command line as well. If no argument passed, read arguments from config. One may set up a bash file to estimate different industry in batch.
+
+```bash
+# run MST spectral clustering factor return estimates
+python run.py opt_fac_ret --use_dynamic_ind True --dynamic_ind_name zz1000_10_MST_0_spectral_ 
+
+# run MST spectral clustering covariance estimation 
+python run.py opt_cov_est --use_dynamic_ind True --dynamic_ind_name zz1000_10_MST_0_spectral_ 
+```
+
 ## Implemented Objective Functions 支持的目标函数
 
-目前平台支持以下三种目标函数
+Currently this platform support the following four objective functions:
+
+目前平台支持以下四种目标函数
 
 ### qp_method_1
+
+objective: maximize return deducting risks
+
+constraints: holding limits, style exposures, industry exposures, and turnover.
 
 目标函数：最大化经风险调整后收益率
 
@@ -20,15 +38,19 @@ TODO: 补充readme
 
 $$
 \max_x \ \ R^T x - \lambda x^T \Sigma x \\
-s.t. \ \ \forall i \ \ W_{low} \leq x_i \leq W_{high}, \ \ \sum_{i=1}^n x_i = 1 \ \ (持仓约束) \\
+s.t. \ \ \forall i \ \ W_{low} \leq x_i \leq W_{high}, \ \ \sum_{i=1}^n x_i = 1 \ \ (\text{Holding Constraint}) \\
 \forall k  \ \ S_{low} \leq (x^T - w_{bench}^T) X_{style_k} \leq S_{high}
-(风格暴露约束) \\
+\ \ (\text{Style Exposure}) \\
 \forall k  \ \ I_{low} \leq (x^T - w_{bench}^T) X_{ind_k} \leq I_{high}
-(行业暴露约束) \\
-\sum_{i=1}^n |x - x_{t-1}| \leq TO_{limit} (换手率约束)
+\ \ (\text{Industry Exposure}) \\
+\sum_{i=1}^n |x - x_{t-1}| \leq TO_{limit} \ \ (\text{Turnover})
 $$
 
 ### qp_method_2
+
+objective: maximize return deducting risks and turnover.
+
+constraints: holding limits, style exposures, and industry exposures.
 
 目标函数：最大化经风险和交易成本调整后收益率
 
@@ -36,16 +58,20 @@ $$
 
 $$
 \max_x \ \ R^T x - \lambda x^T \Sigma x - \theta \|x - x_{t-1}\|_1\\
-s.t. \ \ \forall i \ \ W_{low} \leq x_i \leq W_{high}, \ \ \sum_{i=1}^n x_i = 1 \ \ (持仓约束) \\
-\forall k  \ \ S_{low} \leq (x^T - w_{bench}^T) X_{style_k} \leq S_{high}
-(风格暴露约束) \\
-\forall k  \ \ I_{low} \leq (x^T - w_{bench}^T) X_{ind_k} \leq I_{high}
-(行业暴露约束) \\
+s.t. \ \ \forall i \ \ W_{low} \leq x_i \leq W_{high}, \ \ \sum_{i=1}^n x_i = 1 \ \ (\text{Holding Constraint}) \\
+\forall k  \ \ S_{low} \leq (x^T - w_{bench}^T) X_{style_k} \leq S_{high} \ \ (\text{Style Exposure}) \\
+\forall k  \ \ I_{low} \leq (x^T - w_{bench}^T) X_{ind_k} \leq I_{high} \ \ (\text{Industry Exposrue}) \\
 $$
+
+More details to be discussed below (absolute value handling)
 
 具体实现细节详见开发者日志（绝对值函数的处理）
 
 ### qp_method_3
+
+objective: maximize return deducting risks, turnover, and style exposure
+
+constraints: holding limits and industry exposure.
 
 目标函数：最大化经风险,交易成本调整,风格约束后的收益率
 
@@ -53,12 +79,15 @@ $$
 
 $$
 \max_x \ \ R^T x - \lambda x^T \Sigma x - \theta \|x - x_{t-1}\|_1 - \nu \left[ (x^T - w_{bench}^T) X_{style_k}X_{style_k}^T(x - w_{bench}) \right]\\
-s.t. \ \ \forall i \ \ W_{low} \leq x_i \leq W_{high}, \ \ \sum_{i=1}^n x_i = 1 \ \ (持仓约束) \\
-\forall k  \ \ I_{low} \leq (x^T - w_{bench}^T) X_{ind_k} \leq I_{high}
- (行业暴露约束) \\
+s.t. \ \ \forall i \ \ W_{low} \leq x_i \leq W_{high}, \ \ \sum_{i=1}^n x_i = 1 \ \ (\text{Holding Limit}) \\
+\forall k  \ \ I_{low} \leq (x^T - w_{bench}^T) X_{ind_k} \leq I_{high} \ \ (\text{Industry Exposure}) \\
 $$
 
-### qp_method_4 (aka 模型错位)
+### qp_method_4 (aka misalignment 模型错位)
+
+objective: maximize return deducting risks and discarding portions of returns unaccounted returns by style factors to address model misalignment.
+
+constraints: holding constraints, style exposures, industry exposures, and turnover limit.
 
 目标函数：最大化经风险调整后收益率, 刨去未被风险因子解释的收益率
 
@@ -66,13 +95,13 @@ $$
 
 $$
 \max_x \ \ R^T x - \lambda x^T \Sigma x - \xi (R_{ortho}^T x)^2\\
-s.t. \ \ \forall i \ \ W_{low} \leq x_i \leq W_{high}, \ \ \sum_{i=1}^n x_i = 1 \ \ (持仓约束) \\
-\forall k  \ \ S_{low} \leq (x^T - w_{bench}^T) X_{style_k} \leq S_{high}
-(风格暴露约束) \\
-\forall k  \ \ I_{low} \leq (x^T - w_{bench}^T) X_{ind_k} \leq I_{high}
-(行业暴露约束) \\
-\sum_{i=1}^n |x - x_{t-1}| \leq TO_{limit} (换手率约束)
+s.t. \ \ \forall i \ \ W_{low} \leq x_i \leq W_{high}, \ \ \sum_{i=1}^n x_i = 1 \ \ (\text{Holding Constraint}) \\
+\forall k  \ \ S_{low} \leq (x^T - w_{bench}^T) X_{style_k} \leq S_{high} \ \ (\text{Style Exposure}) \\
+\forall k  \ \ I_{low} \leq (x^T - w_{bench}^T) X_{ind_k} \leq I_{high} \ \ (\text{Industry Exposure}) \\
+\sum_{i=1}^n |x - x_{t-1}| \leq TO_{limit} \ \ (\text{Turnover})
 $$
+
+More to be discussed in Factor Investing 7.3.1
 
 详情请参考石川因子投资7.3.1错位的收益与风险模型
 

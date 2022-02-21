@@ -1,13 +1,31 @@
 # Graph Cluster
 
-Experiement different graph clustering methodologies. The followings are to be implemented:
+Experiment different graph clustering methodologies. The following graphs are to be implemented:
 
 - Asset Graph (AG)
 - Minimum Spanning Tree (MST)
 - Planar Maximally Filtered Graph (PMFG)
-- Random Matrix Theory (directly obtain communities without building a graph)
 
-Alternatively each of the first three could be built upon correlation matrices transformed using techniques covered in RMT.
+In addition to these, each of the first three could be built upon correlation matrices transformed using techniques covered in RMT.
+
+For each constructed graph, we could use four different ways to detect communities:
+
+- Average Linkage
+- Spectral Clustering
+- Node2Vec + KMeans
+- Sub2Vec + KMeans
+
+## Running Instructions
+
+The main module is to train industry. There are two versions: ```IndustryTrainer``` and ```MultiIndustryTrainer```. The former one train one set of parameters, whereas the latter one obtain communities by different sets of parameters when the graph is constructed in each period.
+
+```bash
+# read config to train one set of parameter
+python run.py cluster_train 
+
+# use combinations of these config to train multiple communities
+python run.py cluster_train --use_multi True --graph_type AG --filter_mode 0 --multi_num_clusters 5 10 20 30 40 60 --multi_clustering_type spectral node2vec sub2vec 
+```
 
 ## Demo
 
