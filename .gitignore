@@ -16,6 +16,7 @@ out/temp
 out/train_test_dates
 
 # test_space 
+test_*
 test_space*
 
 # confidential files (contains trading strategies)

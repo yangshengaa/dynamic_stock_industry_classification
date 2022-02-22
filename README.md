@@ -30,8 +30,9 @@ China A-Share stocks, the corresponding major index data (sz50, hs300, zz500, zz
 
 | Model | AlphaReturn (cumsum) | AlphaSharpe | AlphaDrawdown | Turnover |
 | ----- | :---------------------: | :----------: | :-----------: | :------: |
-| LinearRegressor | 71.58 | 1.92 | -19.84 | 1.01 |
-| LgbmRegressor | 145.64 | 3.65 | -11.58 | 1.21 |
+| LinearRegressor | 71.58 | 1.92 | -19.84 | **1.01** |
+| LgbmRegressor | 145.64 | **3.65** | **-11.58** | 1.21 |
+| LgbmRegressor-opt | **146.73** | 2.96 | -29.79 | 1.11 |
 
 TODO: add stats after portfolio opt;  
 TODO: add graph improved model stats;

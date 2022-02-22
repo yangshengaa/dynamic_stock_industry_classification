@@ -884,7 +884,7 @@ class WeightOptimizer():
 
         sigma_holding = self.sigma_holding_dict[return_type]
 
-        opt_signal = pd.DataFrame(0, columns=self.date_list_opt, index=self.tickers)
+        # opt_signal = pd.DataFrame(0, columns=self.date_list_opt, index=self.tickers)
         self.obj_func = cfg.obj_func
         # weight_low = self.weight_low
         # weight_high = self.weight_high
@@ -917,6 +917,7 @@ class WeightOptimizer():
         start = time.time()
 
         # 开始循环
+        opt_signal_list = []
         for date in self.date_list_opt:
             # extract today data
             Sigma_holding_stock = sigma_holding[date]
@@ -926,11 +927,12 @@ class WeightOptimizer():
             weight = qp_method_func(date, Sigma_holding_stock, prev_holdings_today.values)
 
             # append to weight
-            opt_signal[date][today_holdings] = weight
+            # opt_signal[date][today_holdings] = weight
 
             # update prev_holdings
             prev_holdings = pd.Series(weight, index=today_holdings)
             prev_holdings = prev_holdings + template_series
+            opt_signal_list.append(prev_holdings.fillna(0).rename(date))
 
             # print by month
             cur_year_date = date[:6]
@@ -940,6 +942,8 @@ class WeightOptimizer():
                 # renew 
                 prev_year_date = cur_year_date
                 start = time.time() 
+        opt_signal = pd.concat(opt_signal_list, axis=1)
+        opt_signal = opt_signal.loc[self.tickers]  # sort 
         self.opt_signal_dict[return_type] = opt_signal
 
 
@@ -957,8 +961,8 @@ class WeightOptimizer():
                 output_signal_path,
                 cfg.input_signal_df_name,  
                 cfg.adj_method,
-                cfg.weight_low, 
-                cfg.weight_high, 
+                self.weight_low, 
+                self.weight_high, 
                 return_type,
                 self.obj_func,
             )
@@ -968,30 +972,30 @@ class WeightOptimizer():
             if self.qp_method == 1: 
                 file_name = (
                     file_name + 
-                    cfg.style_neutralize * f'_style{cfg.style_high_limit}' + 
-                    cfg.ind_neutralize * f'_ind{cfg.ind_high_limit}' + 
-                    cfg.turnover_constraint * f'_turnover{cfg.turnover_limit}'
+                    cfg.style_neutralize * f'_style{self.all_style_high_limit}' + 
+                    cfg.ind_neutralize * f'_ind{self.all_ind_high_limit}' + 
+                    cfg.turnover_constraint * f'_turnover{self.all_turnover_limit}'
                 )
             elif self.qp_method == 2:
                 file_name = (
                     file_name + 
                     f'_cost_penalty{self.penalty_theta}' + 
-                    cfg.style_neutralize * f'_style{cfg.style_high_limit}' + 
-                    cfg.ind_neutralize * f'_ind{cfg.ind_high_limit}'
+                    cfg.style_neutralize * f'_style{self.all_style_high_limit}' + 
+                    cfg.ind_neutralize * f'_ind{self.all_ind_high_limit}'
                 )
             elif self.qp_method == 3:
                 file_name = (
                     file_name + 
                     f'_style_penalty{self.penalty_nu}' + 
-                    cfg.ind_neutralize * f'_ind{cfg.ind_high_limit}'
+                    cfg.ind_neutralize * f'_ind{self.all_ind_high_limit}'
                 )
             elif self.qp_method == 4: 
                 file_name = (
                     file_name + 
                     f'_misalign_penalty{self.penalty_xi}' + 
-                    cfg.style_neutralize * f'_style{cfg.style_high_limit}' + 
-                    cfg.ind_neutralize * f'_ind{cfg.ind_high_limit}' + 
-                    cfg.turnover_constraint * f'_turnover{cfg.turnover_limit}'
+                    cfg.style_neutralize * f'_style{self.all_style_high_limit}' + 
+                    cfg.ind_neutralize * f'_ind{self.all_ind_high_limit}' + 
+                    cfg.turnover_constraint * f'_turnover{self.all_turnover_limit}'
                 )
             if self.use_dynamic_ind:
                 file_name += self.dynamic_ind_name

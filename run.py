@@ -119,7 +119,7 @@ def portfolio_optimization_cov_est():
     from src.portfolio_optimization.CovMatrixEstimator import CovMatrixEstimator
 
     # accept arguments for meta control 
-    parser = argparse.ArgumentParser(description='portfolio optimization factor return estimation config')
+    parser = argparse.ArgumentParser(description='portfolio optimization covariance estimation config')
     parser.add_argument('--start_date', default=None, help='start date to estimate covariance')
     parser.add_argument('--end_date', default=None, help='end date to estimate covariance')
     parser.add_argument('--use_dynamic_ind', type=bool, default=None, help='whether to use dynamic industry')
@@ -145,7 +145,34 @@ def portfolio_optimization_weight():
     """ adjust weight """
     from src.portfolio_optimization.WeightOptimizer import WeightOptimizer
 
+    # accept arguments for meta control
+    parser = argparse.ArgumentParser(description='portfolio optimization weight config')
+    parser.add_argument('--start_date', default=None, help='start date to adjust weight')
+    parser.add_argument('--end_date', default=None, help='end date to adjust weight')
+    parser.add_argument('--use_dynamic_ind', type=bool,
+                        default=None, help='whether to use dynamic industry')
+    parser.add_argument('--dynamic_ind_name', default=None,
+                        help='name of the dynamic industry')
+    parser.add_argument('--ind_low_limit', default=None, type=float, help='excess weight minimum industry exposure')
+    parser.add_argument('--ind_high_limit', default=None, type=float, help='excess weight maximum industry exposure')
+    args, _ = parser.parser_known_args()
+
+    # init 
     calculating_process = WeightOptimizer()
+    # change config 
+    if not args.start_date is None:
+        calculating_process.start_date = args.start_date
+    if not args.end_date is None:
+        calculating_process.end_date = args.end_date
+    if not args.use_dynamic_ind is None:
+        calculating_process.use_dynamic_ind = args.use_dynamic_ind
+    if not args.dynamic_ind_name is None:
+        calculating_process.dynamic_ind_name = args.dynamic_ind_name
+    if not args.ind_low_limit is None:
+        calculating_process.ind_low_limit = args.ind_low_limit
+    if not args.ind_high_limit is None:
+        calculating_process.ind_high_limit = args.ind_high_limit
+    # run 
     calculating_process.start_weight_optimize_process()
 
 

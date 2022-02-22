@@ -14,7 +14,7 @@ from src.data_ingestion.PqiDataSdk_Offline import PqiDataSdkOffline
 user = getpass.getuser()
 
 # name output folder 
-test_name = 'benchmark'
+test_name = 'test_pipeline'
 
 '''
 ======= BackTest System Config ========
@@ -39,17 +39,17 @@ factor_path = 'data/features/factor'  # for alpha factors
 
 # signal factor read path 
 factor_path = 'out/signal_df'           # for holding signals test
-# factor_path += '/lgb_161227_211231_240_40_202201280254_Regressor_zz1000_fmv_100_1'
+factor_path += '/lgb_161227_211231_240_40_202201280254_Regressor_zz1000_fmv_100_1'
 # factor_path += '/lr_bm_161227_211231_240_40_202201241841_Regressor_linear_0_rolling_zz1000_fmv_100_1'
 
 # # ml factor path 
-factor_path = 'data/features/ml_factor' 
+# factor_path = 'data/features/ml_factor' 
 
 '''
 ============ BackTest Config =============
 '''
 # TODO: to English
-start_date = '20170101'
+start_date = '20170701'
 end_date = '20211231'
 adj_freq = 1  # 调仓周期
 freq = "D"  # 调仓模式，W为按周，D为按日

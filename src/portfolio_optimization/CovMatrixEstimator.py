@@ -200,10 +200,10 @@ class CovMatrixEstimator:
             idio_current = idio_return_df[(current_t - self.h):current_t].values
 
             # if all nan, skip to speed up 
-            if np.isnan(f_current).all() and np.isnan(idio_current).all():
-                temp_factor_cov[self.date_list_cov[current_t - 1]] = factor_cov   
-                temp_idio_var[self.date_list_cov[current_t - 1]] = pd.DataFrame([idio_var], columns=idio_return_df.columns)
-                continue
+            # if np.isnan(f_current).all() and np.isnan(idio_current).all():
+            #     temp_factor_cov[self.date_list_cov[current_t - 1]] = f_current   
+            #     temp_idio_var[self.date_list_cov[current_t - 1]] = pd.DataFrame([idio_current], columns=idio_return_df.columns)
+            #     continue
 
             # 因子收益率
             f_current_weighted = f_current * weight 
@@ -259,7 +259,8 @@ class CovMatrixEstimator:
 
         # bootstrap
         bootstrap_num = 500  # boostrap数量
-        dev = np.zeros((bootstrap_num, factor_num))
+        # dev = np.zeros((bootstrap_num, factor_num))
+        dev_list = []
         
         for m in range(bootstrap_num):
             # 生成模拟特征因子收益矩阵
@@ -276,8 +277,10 @@ class CovMatrixEstimator:
             e_pseudo_value, e_pseudo_vector = eigh(cov_b)
             e_diag_true = np.diag(e_pseudo_vector.T @ curr_factor_cov @ e_pseudo_vector)
             quotient = e_diag_true / e_pseudo_value  # 模拟风险偏差
-            dev[m,:] = quotient
+            # dev[m,:] = quotient
+            dev_list.append(quotient)
         
+        dev = np.vstack(dev_list)  # concat 
         mean_dev = np.sqrt(dev.mean(axis = 0))  
         final_dev = alpha * (mean_dev - 1) + 1
         cov_eigen_adj = e_true_vectors @ np.diag((final_dev * final_dev) * e_true_values) @ e_true_vectors.T
@@ -290,7 +293,6 @@ class CovMatrixEstimator:
         dates = list(temp_factor_cov.keys())
         adj_factor_cov = {}
 
-        # TODO: 打包进子进程开多进程蒙特卡洛
         # 将每一期raw估计的协方差矩阵放入子进程蒙特卡洛
         pool = mp.Pool(processes=8)
         process_list = []
@@ -388,11 +390,15 @@ class CovMatrixEstimator:
         date_list_vol_cal_int = [int(x) for x in date_list_vol_cal]
         factor_return_df = self.factor_return_df_dict[return_type].loc[date_list_vol_cal_int,:] 
         factor_return_nextday = factor_return_df.shift(-1)
+        factor_return_nextday_np = factor_return_nextday.to_numpy()
 
         idio_return_df = self.idio_return_df_dict[return_type].loc[date_list_vol_cal_int,:] 
         idio_return_nextday = idio_return_df.shift(-1)
+        idio_return_nextday_np = idio_return_nextday.to_numpy()
+
         new_idio_var = {}
         size = self.eod_data_dict['FloatMarketValue']
+        size_np =  size.to_numpy().T
 
         total_date = len(date_list_vol_cal)
 
@@ -401,18 +407,32 @@ class CovMatrixEstimator:
         bias_f_agg, bias_idio_agg = [], [] 
         for current_t in range(1 + self.pred_period, total_date):
             # 因子收益波动
+            # bias_f_agg.append(
+            #     np.sqrt(
+            #     ((
+            #         ((factor_return_nextday.iloc[(current_t - 1 - self.pred_period):current_t - 1,:] + 1).prod() - 1) 
+            #       / np.sqrt(np.diag(temp_factor_cov[date_list_vol_cal[(current_t - 1 - self.pred_period)]]))) ** 2).mean())
+            # )
+
+            # # 特质收益波动
+            # bias_idio_each = (((idio_return_nextday.iloc[(current_t - 1 - self.pred_period):current_t - 1,:] + 1).prod() - 1) 
+            #            / np.sqrt(temp_idio_var[date_list_vol_cal[(current_t - 1 - self.pred_period)]])) ** 2
+            cur_date = date_list_vol_cal[(current_t - 1 - self.pred_period)]
+            # 因子收益波动
             bias_f_agg.append(
                 np.sqrt(
                 ((
-                    ((factor_return_nextday.iloc[(current_t - 1 - self.pred_period):current_t - 1,:] + 1).prod() - 1) 
-                  / np.sqrt(np.diag(temp_factor_cov[date_list_vol_cal[(current_t - 1 - self.pred_period)]]))) ** 2).mean())
+                    (np.nanprod(factor_return_nextday_np[(current_t - 1 - self.pred_period):current_t - 1] + 1, axis=0) - 1) 
+                  / np.sqrt(np.diag(temp_factor_cov[cur_date]))) ** 2).mean())
             )
 
-            # 特质收益波动
-            bias_idio_each = (((idio_return_nextday.iloc[(current_t - 1 - self.pred_period):current_t - 1,:] + 1).prod() - 1) 
-                       / np.sqrt(temp_idio_var[date_list_vol_cal[(current_t - 1 - self.pred_period)]])) ** 2
+            # # 特质收益波动
+            bias_idio_each = ((np.nanprod(idio_return_nextday_np[(current_t - 1 - self.pred_period):current_t - 1] + 1, axis=0) - 1) 
+                       / np.sqrt(temp_idio_var[cur_date])) ** 2
+
             bias_idio_each = bias_idio_each + bias_idio_each * 0 
-            bias_idio_each[bias_idio_each >= 100] = 1
+            # bias_idio_each[bias_idio_each >= 100] = 1
+            bias_idio_each = np.where(bias_idio_each >= 100, 1, bias_idio_each)
             bias_idio_agg.append(bias_idio_each)
         bias_f_agg = np.array(bias_f_agg)
 
@@ -421,7 +441,8 @@ class CovMatrixEstimator:
 
             bias_f = bias_f_agg[current_t - self.h_vol - self.pred_period : current_t - self.pred_period]
             u_s = np.vstack(bias_idio_agg[current_t - self.h_vol - self.pred_period : current_t - self.pred_period]) 
-            curr_period_size = size.loc[:, date_list_vol_cal[(current_t - self.h_vol)]: date_list_vol_cal[(current_t - 1)]].T.values
+            # curr_period_size = size.loc[:, date_list_vol_cal[(current_t - self.h_vol)]: date_list_vol_cal[(current_t - 1)]].T.values
+            curr_period_size = size_np[current_t - self.h_vol : current_t]
             tus = curr_period_size * u_s 
             bias_idio = np.sqrt(np.nansum(tus, axis=1) / np.nansum(~np.isnan(tus) * curr_period_size, axis=1))  # 市值加权算横截面特质风险偏误统计量
 
