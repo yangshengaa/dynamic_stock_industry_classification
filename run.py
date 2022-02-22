@@ -155,7 +155,7 @@ def portfolio_optimization_weight():
                         help='name of the dynamic industry')
     parser.add_argument('--ind_low_limit', default=None, type=float, help='excess weight minimum industry exposure')
     parser.add_argument('--ind_high_limit', default=None, type=float, help='excess weight maximum industry exposure')
-    args, _ = parser.parser_known_args()
+    args, _ = parser.parse_known_args()
 
     # init 
     calculating_process = WeightOptimizer()
