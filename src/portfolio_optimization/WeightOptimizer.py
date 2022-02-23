@@ -33,31 +33,14 @@ class WeightOptimizer():
         self.start_date = cfg.start_date
         self.end_date = cfg.end_date
         
-        # dataserver
-        self.myconnector = PqiDataSdkOffline()
-
-        # stock pools and dates
-        self.all_stocks = self.myconnector.get_ticker_list()
-        self.eod_data_dict = self.myconnector.get_eod_history(
-            tickers=self.all_stocks, 
-            start_date=self.start_date,
-            end_date=self.end_date
-        )
-        self.return_type_list = cfg.return_type_list
-        self.trade_dates = self.myconnector.select_trade_dates(
-            start_date=self.start_date, 
-            end_date=self.end_date
-        )
-
         # to be populated 
         self.factor_cov_dict = {}
         self.idio_var_dict = {}
         self.cov_save_path = cfg.cov_save_path
+        self.return_type_list = cfg.return_type_list
 
         self.class_factor_dict_adj = {}
 
-        self.tickers = list(self.eod_data_dict["ClosePrice"].index)  
-        self.date_list = list(self.eod_data_dict['ClosePrice'].columns)
         self.index_code_to_name = cfg.index_code_to_name
 
         self.sigma_holding_dict = {}
@@ -85,7 +68,24 @@ class WeightOptimizer():
         self.use_dynamic_ind = cfg.use_dynamic_ind
         self.dynamic_ind_name = cfg.dynamic_ind_name
 
+    def load_history(self):
+        # dataserver
+        self.myconnector = PqiDataSdkOffline()
 
+        # stock pools and dates
+        self.all_stocks = self.myconnector.get_ticker_list()
+        self.eod_data_dict = self.myconnector.get_eod_history(
+            tickers=self.all_stocks, 
+            start_date=self.start_date,
+            end_date=self.end_date
+        )
+        self.trade_dates = self.myconnector.select_trade_dates(
+            start_date=self.start_date, 
+            end_date=self.end_date
+        )
+        self.tickers = list(self.eod_data_dict["ClosePrice"].index)  
+        self.date_list = list(self.eod_data_dict['ClosePrice'].columns)
+    
     # ==============================================
     # -------------- data prep ---------------------
     # ==============================================
@@ -1012,6 +1012,7 @@ class WeightOptimizer():
     def start_weight_optimize_process(self):
         print("正在读取数据")
         t0 = time.time()
+        self.load_history()
         self.prepare_data()
         print("读取数据耗时", time.time() - t0)
 

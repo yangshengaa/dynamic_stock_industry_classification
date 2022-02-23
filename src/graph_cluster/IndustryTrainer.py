@@ -218,7 +218,7 @@ class IndustryTrainer:
         ind_df = pd.concat(ind_df_list, axis=1)
 
         # bfill for the first period (meaningless but for sanity)
-        pre_dates = list(set(self.ds.trade_dates) - set(ind_df.columns))
+        pre_dates = sorted(list(set(self.ds.trade_dates) - set(ind_df.columns)))
         pre_dates_df = pd.DataFrame(
             np.nan, index=ind_df.index, columns=pre_dates)
         complete_ind_df = pd.concat([pre_dates_df, ind_df], axis=1)
@@ -434,7 +434,7 @@ class MultiIndustryTrainer(IndustryTrainer):
             ind_df = pd.concat(ind_df_list, axis=1)
 
             # bfill for the first period (meaningless but for sanity)
-            pre_dates = list(set(self.ds.trade_dates) - set(ind_df.columns))
+            pre_dates = sorted(list(set(self.ds.trade_dates) - set(ind_df.columns)))
             pre_dates_df = pd.DataFrame(
                 np.nan, index=ind_df.index, columns=pre_dates)
             complete_ind_df = pd.concat([pre_dates_df, ind_df], axis=1)

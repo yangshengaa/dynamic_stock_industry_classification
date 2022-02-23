@@ -15,9 +15,6 @@ import numpy as np
 import pandas as pd
 import multiprocessing as mp 
 import statsmodels.api as sm
-# import statsmodels.api as sm
-# import matplotlib.pyplot as plt
-# from sklearn import linear_model
 # 控制进程数
 # os.environ["MKL_NUM_THREADS"] = "1" 
 # os.environ["NUMEXPR_NUM_THREADS"] = "1" 
@@ -50,23 +47,10 @@ class CovMatrixEstimator:
         self.start_date = cfg.start_date
         self.end_date = cfg.end_date
 
-        # data 
-        self.myconnector = PqiDataSdkOffline()
-        self.all_stocks = self.myconnector.get_ticker_list()
-        self.eod_data_dict = self.myconnector.get_eod_history(
-            tickers=self.all_stocks, 
-            start_date=self.start_date,
-            end_date=self.end_date,
-            fields=['FloatMarketValue']
-        )
-        self.date_list = list(self.eod_data_dict['FloatMarketValue'].columns)
-        self.tickers = list(self.eod_data_dict["FloatMarketValue"].index) 
-        self.index_code_to_name = cfg.index_code_to_name
-        
         # dynamic ind 
         self.use_dynamic_ind = cfg.use_dynamic_ind
         self.dynamic_ind_name = cfg.dynamic_ind_name
-
+        
         # path 
         self.cov_save_path = cfg.cov_save_path   # 协方差矩阵写入路径     
         self.ret_read_path = cfg.ret_save_path   # 因子收益/特质收益读取路径
@@ -92,6 +76,21 @@ class CovMatrixEstimator:
         self.h_struc = cfg.h_struc
         self.min_o = cfg.min_o
         self.E0 = cfg.E0
+
+
+    def load_history(self):
+        # data 
+        self.myconnector = PqiDataSdkOffline()
+        self.all_stocks = self.myconnector.get_ticker_list()
+        self.eod_data_dict = self.myconnector.get_eod_history(
+            tickers=self.all_stocks, 
+            start_date=self.start_date,
+            end_date=self.end_date,
+            fields=['FloatMarketValue']
+        )
+        self.date_list = list(self.eod_data_dict['FloatMarketValue'].columns)
+        self.tickers = list(self.eod_data_dict["FloatMarketValue"].index) 
+        self.index_code_to_name = cfg.index_code_to_name
 
 
     def read_ret_data(self, return_type):
@@ -615,6 +614,7 @@ class CovMatrixEstimator:
     def start_cal_cov_process(self):
         print("正在读取收益率数据")
         t0 = time.time()
+        self.load_history()
         self.load_ret_data()
         self.get_cov_dates()
         self.load_factor_data()

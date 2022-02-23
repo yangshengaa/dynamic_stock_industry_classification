@@ -34,10 +34,26 @@ class FactorReturnGenerator(object):
         # dates
         self.start_date = cfg.start_date
         self.end_date = cfg.end_date
+        # dynamic industry 
+        self.use_dynamic_ind = cfg.use_dynamic_ind
+        self.dynamic_ind_name = cfg.dynamic_ind_name
 
+        self.ind_df = pd.DataFrame()  # 行业0-1矩阵
+        self.class_name = cfg.class_name
+
+        # paths 路径
+        self.class_factor_read_path = cfg.class_factor_path
+        self.ret_save_path = cfg.ret_save_path
+
+        # set up storing dicts 各类存储dict
+        self.class_factor_dict_adj = {}  # 存放大类风格因子值 aggregated style factors 
+        self.factor_return_df_dict = {}  # 存放大类风格因子值的收益 aggregated style factor returns
+        self.idio_return_df_dict = {}    # 存放特质收益 idiosyncratic returns
+     
+
+    def load_config(self):
         # dataserver
         self.myconnector = PqiDataSdkOffline()
-
         # stock pool and dates
         self.all_stocks = self.myconnector.get_ticker_list()
         self.eod_data_dict = self.myconnector.get_eod_history(
@@ -52,10 +68,6 @@ class FactorReturnGenerator(object):
         self.tickers = list(self.eod_data_dict["ClosePrice"].index)  
         self.date_list = list(self.eod_data_dict['ClosePrice'].columns)
         self.index_code_to_name = cfg.index_code_to_name
-
-        # dynamic industry 
-        self.use_dynamic_ind = cfg.use_dynamic_ind
-        self.dynamic_ind_name = cfg.dynamic_ind_name
         
         # mode for return calculations 收益率回看模式
         self.ret_df_dict = {}    
@@ -77,19 +89,6 @@ class FactorReturnGenerator(object):
         # self.shift_step_dict = {'o2next_o': 1, 'c2next_o': 1, 'o2c': 0}
         # self.ret_df = self.ret_df_dict['o2next_o'].shift(1, axis=1)
         self.ret_df = self.ret_df_dict[self.return_type_list[0]]
-        # self.saving_path = '/home/wlchen/data/'
-        self.ind_df = pd.DataFrame()  # 行业0-1矩阵
-        self.class_name = cfg.class_name
-
-        # paths 路径
-        self.class_factor_read_path = cfg.class_factor_path
-        self.ret_save_path = cfg.ret_save_path
-
-        # set up storing dicts 各类存储dict
-        self.class_factor_dict_adj = {}  # 存放大类风格因子值 aggregated style factors 
-        self.factor_return_df_dict = {}  # 存放大类风格因子值的收益 aggregated style factor returns
-        self.idio_return_df_dict = {}    # 存放特质收益 idiosyncratic returns
-     
     
     # =================== factors ========================
 
@@ -309,6 +308,7 @@ class FactorReturnGenerator(object):
         """ 运行主函数 """
         print("Reading Style Factors 正在读取风格因子")
         t0 = time.time()
+        self.load_config()
         self.load_factor_data()
         if self.use_dynamic_ind: # dynamic 
             self.get_dynamic_ind_data()
