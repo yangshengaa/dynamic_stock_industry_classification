@@ -482,7 +482,7 @@ class CovMatrixEstimator:
         if not self.use_dynamic_ind:
             X = self.ind_df.copy()  # 外层copy一次，循环内自己换factor_name
         else:
-            sample_cross_section = self.ind_df.iloc[:, 0]
+            sample_cross_section = self.ind_df.iloc[:, -1]
             ind_labels = sorted(list(set(sample_cross_section.tolist())))
             map_dict = dict(zip(ind_labels, np.eye(len(ind_labels), dtype=int)))
 

@@ -74,6 +74,7 @@ submission.json
 
 # tasks 
 *.sh
+error.txt
 
 # env 
 environment*.yml

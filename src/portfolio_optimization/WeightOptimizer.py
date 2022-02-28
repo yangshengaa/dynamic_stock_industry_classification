@@ -172,7 +172,7 @@ class WeightOptimizer():
 
     def prepare_dynamic_ind_data_ohe(self):
         """ determine mapping rule for the dynamic ind throughout """
-        sample_cross_section = self.ind_df.iloc[:, 0]
+        sample_cross_section = self.ind_df.iloc[:, -1]
         ind_labels = sorted(list(set(sample_cross_section.tolist())))
         map_dict = dict(zip(ind_labels, np.eye(len(ind_labels), dtype=int)))
 
