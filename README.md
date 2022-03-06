@@ -24,6 +24,8 @@ China A-Share stocks, the corresponding major index data (sz50, hs300, zz500, zz
 
 ## Experiment Results
 
+With a fixed predicted ML results, we go through the optimization pipeline to optimize each trained classification.
+
 **Stock Pool**: zz1000 member stocks  
 **Benchmark**: zz1000 index  
 **Time Period**: 20170701 - 20211231  
@@ -33,9 +35,32 @@ China A-Share stocks, the corresponding major index data (sz50, hs300, zz500, zz
 | LinearRegressor | 71.58 | 1.92 | -19.84 | **1.01** |
 | LgbmRegressor | 145.64 | **3.65** | **-11.58** | 1.21 |
 | LgbmRegressor-opt | **146.73** | 2.96 | -29.79 | 1.11 |
+| .. | .. | .. | .. | .. | .. |
+| 40-cluster PMFG Unfiltered Spectral | 154.45 | 3.15 | **-22.69** | 1.11 |
+| 10-cluster PMFG Filtered Average Linkage | 160.95 | **3.32** | -26.77 | 1.11 |
+| 30-cluster AG Unfiltered Sub2Vec | 160.96 | 3.24 | -23.05 | 1.10 |
+| 5-cluster MST Unfiltered Sub2Vec | 163.26 | 3.27 | -27.39 | 1.11 |
+| **20-cluster PMFG Filtered Node2Vec** | **164.68** | 3.30 | -27.06 | 1.11 |
 
-TODO: add stats after portfolio opt;  
-TODO: add graph improved model stats;
+Compared to the original optimization result, we observe a 12.23% improvement in excess return and 12.16% improvement in excess Sharpe ratio.
+
+Since factors based on price and volume lost their predictive power staring from 20200701, we also look at the performances before that time.
+
+**Time Period**: 20170701 - 20200701
+
+| Model | AlphaReturn (cumsum) | AlphaSharpe | AlphaDrawdown | Turnover |
+| ----- | :---------------------: | :----------: | :-----------: | :------: |
+| LgbmRegressor | 150.64 | 6.06 | **-4.59** | 1.23 |
+| LgbmRegressor-opt | **170.31** | 5.43 | -6.76 | 1.12 |
+| .. | .. | .. | .. | .. | .. |
+| 10-cluster PMFG Filtered Sub2Vec | 173.10 | 5.49 | **-5.51** | 1.12 |
+| 5-cluster MST Filtered Sub2Vec | 182.89 | 5.78 | -7.14 | 1.12 |
+| 10-cluster AG Filtered Sub2Vec | 181.50 | 5.64 | -7.40 | 1.12 |
+| **20-cluster PMFG Filtered Node2Vec** | **184.21** | **5.85** | -6.42 | 1.12 |
+
+In this period, we observe a 8.16% improvement in excess return and a 7.73 improvement in excess Sharpe ratio, compared to the original optimization result.
+
+For a complete list of results, check out [summary_20170701_20211231.csv](out/res/signal_test_file_20220305_long_experiment/summary.csv) and [summary_20170701_20200701.csv](out/res/signal_test_file_20220305_short_experiment/summary.csv).
 
 ## Environment
 
