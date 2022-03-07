@@ -43,7 +43,12 @@ $$
 \rho_{ij} = \frac{\sum_{t=2}^T (r_{i, t} - \bar{r}_i)(r_{j, t} - \bar{r}_j) }{\sqrt{[\sum_{t=2}^T (r_{i, t} - \bar{r}_i)^2] [\sum_{t=2}^T (r_{j, t} - \bar{r}_j)^2]}}
 $$
 
-where $\bar{r}_i = \frac{r_{i,2} +r_{i,3} + ... + r_{i, T}}{T - 1}$.
+where
+
+$$
+\bar{r}_i = \frac{r_{i,2} +r_{i,3} + ... + r_{i, T}}{T - 1}
+$$
+
 This could be considered as the "weight" of the edge between stock $i$ and stock $j$. One sometimes need to convert weights to distance between two nodes, and a naive form is give by
 
 $$
@@ -106,36 +111,22 @@ In this project, we will focus on a particular stock pool named zz1000 (中证10
 | All | 20150101 | 20211231 |4752 | 28 | 24 | 0.215112 | 1.363993e+10 |
 | ZZ1000 | 20150101 |20211231 |1847 | 28 | 24 | 0.121805 | 6.898919e+09 |
 
-We also list the features available to compute alphafactors (for gathering excess returns) and risk factors (for controlling porfolio risks). The meaning of these names is self-explanatory.
+We also list the 24 features available to compute alphafactors (for gathering excess returns) and risk factors (for controlling porfolio risks). The meaning of these names is self-explanatory.
 
-* Price:  
-  * 'AdjFactor'
-  * 'PreClosePrice'
-  * 'OpenPrice'
-  * 'ClosePrice'
-  * 'DownLimitPrice'
-  * 'UpLimitPrice'
-  * 'HighestPrice'
-  * 'LowestPrice'
-  * 'Price'
-  * 'VWAP'
-  * 'TrueRange'
-  * 'RangeRate'
-* Volume:
-  * 'TurnoverRate'
-  * 'TradeVolume'
-  * 'TradeValue'
-  * 'FloatMarketValue'
-  * 'FloatShare'
-  * 'TotalMarketValue'
-* Status:
-  * 'TradeStatus'
-  * 'IssueStatus'
-  * 'STStatus'
-  * 'SuspendStatus'
-  * 'UpDownLimitStatus'
-* Others:
-  * 'TotalEquity'
+| Price | Volume | Status | Others |
+| :---: | :---: | :---: | :---: |
+| AdjFactor | TurnoverRate | TradeStatus | Total Equity |
+| PreClosePrice | TradeVolume | IssueStatus | |
+| OpenPrice | TradeValue | STStatus | |  
+| ClosePrice | FloatMarketValue | SuspendStatus | |
+| DownLimitPrice | FloatShare | UpDownLimitStatus | |
+| UpLimitPrice | TotalMarketValue |  | |
+| HighestPrice | | | |
+| LowestPrice | | | |
+| Price | | | |
+| VWAP |  | | |
+| TrueRange | |  | |
+| RangeRate | |  | |
 
 ### Experiment Details
 
@@ -210,7 +201,7 @@ In the following plot, grey lines are simulated PnL curves, black line is the or
 
 <center>
 <figure>
-<img src="report/pnl_with_simulations.png" alt="png_with_simulations">
+<img src="report/pnl_with_simulations.png" alt="png_with_simulations" style="width:150%">
 <figcaption align = "center"><b>Fig 3: PnL Curves with simulation </b></figcaption>
 </figure>
 </center>
@@ -315,8 +306,8 @@ In a hedge fund, usually $K > 2000$. But for limited data and computing resource
 
 ### Combine Factors
 
-With the model above, we would like to obtain the trained values for $\mathbb{\beta}_i$ 
-to predict future stock returns. Suppose we have $N$ assets, $K$ factors, and pick $T$ days to be our training period ($T_{train} = 240$ in this project. This is roughly a year since there are only 245 trading days per year), the $X$, features, and $y$, prediction goal, are constructed in the following way: we flatten each factors and vertically concat them with correct dates aligned, and then do the same thing for the return panel data. Features in different dates in the same training period are equally weighted, though it is known empirically that an exponential decay on dates could boost performance.
+With the model above, we would like to obtain the trained values for $$\mathbb{\beta}_i$$
+to predict future stock returns. Suppose we have $ N $ assets, $ K $ factors, and pick $ T $ days to be our training period ($T_{train} = 240$ in this project. This is roughly a year since there are only 245 trading days per year), the $ X $, features, and $ y $, prediction goal, are constructed in the following way: we flatten each factors and vertically concat them with correct dates aligned, and then do the same thing for the return panel data. Features in different dates in the same training period are equally weighted, though it is known empirically that an exponential decay on dates could boost performance.
 
 <center>
 <figure>
