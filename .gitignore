@@ -17,6 +17,7 @@ out/train_test_dates
 
 # test_space 
 test_space*
+test*
 
 # confidential files (contains trading strategies)
 src/factor_list.txt
@@ -75,3 +76,4 @@ environment*.yml
 
 # tasks  
 *.sh
+error*

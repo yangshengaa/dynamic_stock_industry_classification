@@ -18,6 +18,10 @@ The most widely used industry classifications are [China CITIC (中信)](http://
 
 Therefore, a dynamic industry classification is much more recommended for institutional traders, especially hedge fund portfolio managers on low-frequency trading strategies (change stock holdings each day, for instance).  
 
+In this project, we leverage the benefits of graph-based analysis to improve the final stage of low-frequency stock picking strategy research -- Markowitz Portfolio Optimization -- by replacing the static industry exposure constraint with a dynamic one. In other words, we are "optimizing an optimization".
+
+For readers unfamiliar with the low-frequency quant research pipeline, the appendix could be helpful for your convenience.
+
 <center>
 <figure>
 <img src="out/graph_fig/cluster_demo_pmfg.png" alt="Trulli" style="width:70%">
@@ -39,7 +43,8 @@ $$
 \rho_{ij} = \frac{\sum_{t=2}^T (r_{i, t} - \bar{r}_i)(r_{j, t} - \bar{r}_j) }{\sqrt{[\sum_{t=2}^T (r_{i, t} - \bar{r}_i)^2] [\sum_{t=2}^T (r_{j, t} - \bar{r}_j)^2]}}
 $$
 
-where $\bar{r}_i = \frac{r_{i,2} +r_{i,3} + ... + r_{i, T}}{T - 1}$. This could be considered as the "weight" of the edge between stock $i$ and stock $j$. One sometimes need to convert weights to distance between two nodes, and a naive form is give by
+where $\bar{r}_i = \frac{r_{i,2} +r_{i,3} + ... + r_{i, T}}{T - 1}$.
+This could be considered as the "weight" of the edge between stock $i$ and stock $j$. One sometimes need to convert weights to distance between two nodes, and a naive form is give by
 
 $$
 d_{ij} = \sqrt{2 (1 - \rho_{ij})}
@@ -64,16 +69,20 @@ To control the number of industry, we pick algorithms that help generate a presc
 * **Node2Vec<sup>[[10]](#10)</sup> + KMeans**: conduct KMeans on Node2Vec embeddings;
 * **Sub2Vec<sup>[[11]](#11)</sup> + KMeans**: conduct KMeans on Sub2Vec embeddings.
 
+TODO: add a demo picture
+
 ### Graph Evaluation
 
 To evaluate if the re-constructed classification is "good", we go through the entire low-frequency stock picking pipeline and plug in new industry information in the final step -- Markowitz Portfolio Optimization -- to see if there is a performance gain in our strategy.
 
 We focus on the following four metrics to measure performance:
 
-* excess return: the excess return of the strategy with respect to the index / market;
-* max drawdowns: max decrease of the portfolio in value;
-* turnover: measure the rate of invested stocks being replaced by new ones;
-* AlphaSharpeRatio: return / volatility, measure the ability of maximizing returns over risk.
+* **Excess Return**: the excess return of the strategy with respect to the index / market;
+* **Max Drawdown**: max decrease of the portfolio in value;
+* **Turnover**: measure the rate of invested stocks being replaced by new ones;
+* **AlphaSharpeRatio**: return / volatility, measure the ability of maximizing returns over risk.
+
+TODO: put a sample backtest plot here.
 
 The dynamic property is done by a rolling-based train test schemed outlined as follows: we train the graph using $T_{train} = 240$ days and test the performance of the graph in the following $T_{test} = 40$ days. Then we move forward $T_{test}$ days to retrain the graph. Note that the test periods are not overlapping, and the train test periods are the same in the factor combination (machine learning) part of the low-frequency stock picking paradigm. We look at the metrics of the successive testing periods in our portfolio.
 
@@ -97,7 +106,7 @@ In this project, we will focus on a particular stock pool named zz1000 (中证10
 | All | 20150101 | 20211231 |4752 | 28 | 24 | 0.215112 | 1.363993e+10 |
 | ZZ1000 | 20150101 |20211231 |1847 | 28 | 24 | 0.121805 | 6.898919e+09 |
 
-We also list the features available to compute alphafactors (for gathering excess returns) and risk factors (for controling porfolio risks). The meaning of these names is self-explanatory.
+We also list the features available to compute alphafactors (for gathering excess returns) and risk factors (for controlling porfolio risks). The meaning of these names is self-explanatory.
 
 * Price:  
   * 'AdjFactor'
@@ -130,7 +139,140 @@ We also list the features available to compute alphafactors (for gathering exces
 
 ### Experiment Details
 
-TODO: ...
+Using LightGBM to combine 646 alphafactors based on the above features, we trained a machine learning model predicting stock daily returns. With prediction fixed, we use portfolio optimization with trained dynamic industry exposures as constraints instead (see appendix for more details). The following set of rules apply for all backtests:
+
+* Commissions deducted (0.15%)  
+* No latency/slippage (immediate order execution)
+* No trading on stocks issued in their first 60 trading days or stocks hitting up limit or down limit
+* Change stock weights on a daily basis
+* Trade at open (open to open return)
+* Trade on member stock of zz1000 and use zz1000 as the benchmark for excess return (index enhancement style)
+* Select top $M = 100$ stocks on each cross-section to invest (long group)
+
+### Performance Results
+
+This gives the following evaluations:
+
+**Stock Pool**: zz1000 member stocks  
+**Benchmark**: zz1000 index  
+**Time Period**: 20170701 - 20211231  
+
+| Model | AlphaReturn (cumsum) | AlphaSharpe | AlphaDrawdown | Turnover |
+| :-----: | :---------------------: | :----------: | :-----------: | :------: |
+| LgbmRegressor | 145.64 | **3.65** | **-11.58** | 1.21 |
+| LgbmRegressor-opt | **146.73** | 2.96 | -29.79 | 1.11 |
+| .. | .. | .. | .. | .. | .. |
+| 40-cluster PMFG Unfiltered Spectral | 154.45 | 3.15 | **-22.69** | 1.11 |
+| 10-cluster PMFG Filtered Average Linkage | 160.95 | **3.32** | -26.77 | 1.11 |
+| 30-cluster AG Unfiltered Sub2Vec | 160.96 | 3.24 | -23.05 | 1.10 |
+| 5-cluster MST Unfiltered Sub2Vec | 163.26 | 3.27 | -27.39 | 1.11 |
+| **20-cluster PMFG Filtered Node2Vec** | **164.68** | 3.30 | -27.06 | 1.11 |
+
+Compared to the original optimization result, we observe a **12.23%** improvement in excess return and **12.16%** improvement in excess Sharpe ratio.
+
+Since factors based on price and volume are known to have lost their predictive power staring from 20200701, we also look at the performances when they still were still helpful for prediction.
+
+**Stock Pool**: zz1000 member stocks  
+**Benchmark**: zz1000 index  
+**Time Period**: 20170701 - 20200701
+
+| Model | AlphaReturn (cumsum) | AlphaSharpe | AlphaDrawdown | Turnover |
+| :-----: | :---------------------: | :----------: | :-----------: | :------: |
+| LgbmRegressor | 150.64 | 6.06 | **-4.59** | 1.23 |
+| LgbmRegressor-opt | **170.31** | 5.43 | -6.76 | 1.12 |
+| .. | .. | .. | .. | .. | .. |
+| 10-cluster PMFG Filtered Sub2Vec | 173.10 | 5.49 | **-5.51** | 1.12 |
+| 5-cluster MST Filtered Sub2Vec | 182.89 | 5.78 | -7.14 | 1.12 |
+| 10-cluster AG Filtered Sub2Vec | 181.50 | 5.64 | -7.40 | 1.12 |
+| **20-cluster PMFG Filtered Node2Vec** | **184.21** | **5.85** | -6.42 | 1.12 |
+
+In this period, we observe a **8.16%** improvement in excess return and a **7.73%** improvement in excess Sharpe ratio, compared to the original optimization result.
+
+In both time periods, filtered PMFG yielding 20 clusters using Node2Vec gives the best result in overall excess return.
+
+Although improvements are observed in overall excess return, none of the "optimized" result beats the original prediction in Sharpe Ratio or drawdown control. That is, the optimizer sacrifices return per unit risk (Sharpe) to achieve higher overall excess return, and this is likely due to a strict constraint in turnover rate. It is empirically, however, possible for Markowitz portfolio optimization to improve both Sharpe ratio and excess return. More data, in-particular higher-frequency ones, are required to supply a better prediction with lower turnover rate to start with so that turnover constraint can be satisfied without sacrificing much of Sharpe ratio.
+
+For a complete list of results, check out [summary_20170701_20211231.csv](https://github.com/yangshengaa/dynamic_stock_industry_classification/blob/main/out/res/signal_test_file_20220305_long_experiment/summary.csv) and [summary_20170701_20200701.csv](https://github.com/yangshengaa/dynamic_stock_industry_classification/blob/main/out/res/signal_test_file_20220305_short_experiment/summary.csv) available on github.
+
+### Performance Breakdown
+
+We examine the results in detail and observe the following:
+
+* Exceptional performance gains are not due to randomness
+* Filtering helps improve Sharpe Ratio
+* Demonstrate a potential for further improvements in theory by the efficient frontier
+
+#### Improvements Are Not Due to Randomness
+
+Since all optimization are based on the same prediction (for each day, the set of stocks invested are the same across different optimization results), we simulate weights for the selected $M = 100$ stock each day using technique introduced by Fan et al. (2016)<sup>[[13]](#13)</sup>. To uniformly generate positive weights $\xi_i: \sum_{i=1}^M \xi_i = 1$, one may generate i.i.d. $X_i \sim Exp(1)$ and set $\xi_i = X_i / \sum_{i=1}^M X_i$.
+
+In the following plot, grey lines are simulated PnL curves, black line is the original optimized one, and others are curves using dynamic industry. None of the 1000 simulated curves supersedes optimized ones, which concludes that the optimized results are not due to random.
+
+<center>
+<figure>
+<img src="report/pnl_with_simulations.png" alt="png_with_simulations">
+<figcaption align = "center"><b>Fig 3: PnL Curves with simulation </b></figcaption>
+</figure>
+</center>
+
+Moreover, we notice that the majority of optimization using a dynamic ones beat the original optimization, particularly before 20200701, starting from which the PnL curve no longer grows due to ineffective factors, affirming at least empirically that using a dynamic industry classification does help improve the optimization.
+
+#### Filtering On Average Performs Better than Unfiltered Ones
+
+The followings are six violin plots examining if filtering helps improve Sharpe ratio. From top to bottom, we split the trained industry by number of clusters, clustering type, and graph type respectively. The left column is the full period (20170701 - 20211231) and the right column is the truncated one (20170701 - 20200701). Within each of the plot, the left portion of each violin is the unfiltered performance and the right is the filtered counterparts.
+
+<center>
+<table>
+<tr>
+<td> <img src="report/shapre_by_clusters_long.png" alt="title" /> </td>
+<td> <img src="report/shapre_by_clusters_short.png" alt="title" /> </td>
+</tr>
+<tr>
+<td> <img src="report/shapre_by_clustering_long.png" alt="title" /> </td>
+<td> <img src="report/shapre_by_clustering_short.png" alt="title" /> </td>
+</tr>
+<tr>
+<td> <img src="report/shapre_by_graph_long.png" alt="title" /> </td>
+<td> <img src="report/shapre_by_graph_short.png" alt="title" /> </td>
+</tr>
+</table>
+<figcaption align = "center"><b>Fig 4: AlphaSharpe in Different Dimensions </b></figcaption>
+</center>
+
+We also see that there is little difference between different number of clusters prescribed, but that average linkage performs better than node2vec and sub2vec on average, and that MST and PMFG perform better than AG on average.
+
+#### Further Improvement in Theory
+
+To gauge the efficiency of mining returns per unit of risk, we may plot excess returns against realized risk. Here we use the max drawdown as a proxy for risk. The more it appear towards the top left (large return, small risk), the better it is, since it could gather more returns per unit of risk.
+
+Ideally, as risk increases, more returns are expected, since returns are (arguably) the compensations for risks. However, we observe a undesired downward trend in the best fit lines for respective type of graphs during both the full period and the truncated one.
+
+<center>
+<figure>
+<img src="report/return_drawdown_long.png" alt="return drawdown long">
+<figcaption align = "center"><b>Fig 5: Return vs. Drawdown (20170701 - 20211231) </b></figcaption>
+</figure>
+</center>
+
+<center>
+<figure>
+<img src="report/return_drawdown_short.png" alt="return drawdown long">
+<figcaption align = "center"><b>Fig 6: Return vs. Drawdown (20170701 - 20200701) </b></figcaption>
+</figure>
+</center>
+
+For comparison, here is the efficient frontier in theory.
+
+<center>
+<figure>
+<img src="report/efficient_frontier.png" alt="return drawdown long" style="width:50%">
+<figcaption align = "center"><b>Fig 7: Efficient Frontier (by Investopedia) </b></figcaption>
+</figure>
+</center>
+
+The exhibited downward trends show that our optimized results may not be hitting the efficient frontier. The way to reach the frontier is subject to further investigations.
+
+Notice that the best fit lines reaffirm the rough equivalence between MST and PMFG, and that they are better than AG, matching the conclusion above.
 
 ### Interpretability
 
@@ -173,7 +315,8 @@ In a hedge fund, usually $K > 2000$. But for limited data and computing resource
 
 ### Combine Factors
 
-With the model above, we would like to obtain the trained values for $\mathbb{\beta}_i$ to predict future stock returns. Suppose we have $N$ assets, $K$ factors, and pick $T$ days to be our training period ($T_{train} = 240$ in this project. This is roughly a year since there are only 245 trading days per year), the $X$, features, and $y$, prediction goal, are constructed in the following way: we flatten each factors and vertically concat them with correct dates aligned, and then do the same thing for the return panel data. Features in different dates in the same training period are equally weighted, though it is known empirically that an exponential decay on dates could boost performance.
+With the model above, we would like to obtain the trained values for $\mathbb{\beta}_i$ 
+to predict future stock returns. Suppose we have $N$ assets, $K$ factors, and pick $T$ days to be our training period ($T_{train} = 240$ in this project. This is roughly a year since there are only 245 trading days per year), the $X$, features, and $y$, prediction goal, are constructed in the following way: we flatten each factors and vertically concat them with correct dates aligned, and then do the same thing for the return panel data. Features in different dates in the same training period are equally weighted, though it is known empirically that an exponential decay on dates could boost performance.
 
 <center>
 <figure>
@@ -260,5 +403,8 @@ Bijaya Adhikari, Yao Zhang, Naren Ramakrishnan, B. Aditya Prakash (2017). Distri
 
 <a id="12">[12]</a>
 石川, 刘洋溢, 连祥斌 (2020). 因子投资方法与实践.
+
+<a id="13">[13]</a>
+Jianqing Fan, Weichen Wang, Yiqiao Zhong (2016). Robust Covariance Estimation for Approximate Factor Models.
 
 TODO: add more
