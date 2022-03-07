@@ -50,7 +50,7 @@ factor_path += '/lgb_161227_211231_240_40_202201280254_Regressor_zz1000_fmv_100_
 '''
 # TODO: to English
 start_date = '20170701'
-end_date = '20200701'
+end_date = '20211231'
 adj_freq = 1  # 调仓周期
 freq = "D"  # 调仓模式，W为按周，D为按日
 group_num = 10 # 分组测试分组数量

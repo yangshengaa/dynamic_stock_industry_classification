@@ -10,13 +10,14 @@ Project Website: [Dynamic Stock Industrial Classification](https://yangshengaa.g
 
 ## Module Breakdown
 
-This project contains the following five modules:
+This project contains the following six modules:
 
+- [data ingestion](src/data_ingestion): address finance data I/O and handle storage of intermediate results;
 - [factor generation](src/factor_generation): compute and store factors alpha factors and risk factors for low-frequency trading;
 - [backtest](src/backtest): low-frequency backtest framework (both factors and signals). Factors have continuous values on each cross section whereas signals have only -1, 0, and 1 overall;
 - [factor combination](src/factor_combination): combine factors using ML models;
 - [portfolio optimization](src/portfolio_optimization): Markowitz portfolio optimization, with turnover, industrial exposure, style exposure, and various other constraints.
-- [graph clustering](src/graph_cluster): experiment different graph-based clustering on stocks.
+- [graph cluster](src/graph_cluster): experiment different graph-based clustering on stocks.
 
 ## Data
 
@@ -60,7 +61,7 @@ Since factors based on price and volume lost their predictive power staring from
 
 In this period, we observe a 8.16% improvement in excess return and a 7.73 improvement in excess Sharpe ratio, compared to the original optimization result.
 
-For a complete list of results, check out [summary_20170701_20211231.csv](out/res/signal_test_file_20220305_long_experiment/summary.csv) and [summary_20170701_20200701.csv](out/res/signal_test_file_20220305_short_experiment/summary.csv).
+For a complete list of results, check out [summary_20170701_20211231.csv](out/res/signal_test_file_20220305_long_experiment/summary.csv) and [summary_20170701_20200701.csv](out/res/signal_test_file_20220305_short_experiment/summary.csv). And more details are discussed on the project website listed above.
 
 ## Environment
 
