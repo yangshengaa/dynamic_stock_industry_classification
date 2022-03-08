@@ -43,13 +43,7 @@ $$
 \rho_{ij} = \frac{\sum_{t=2}^T (r_{i, t} - \bar{r}_i)(r_{j, t} - \bar{r}_j) }{\sqrt{[\sum_{t=2}^T (r_{i, t} - \bar{r}_i)^2] [\sum_{t=2}^T (r_{j, t} - \bar{r}_j)^2]}}
 $$
 
-where
-
-$$
-\bar{r}_i = \frac{r_{i,2} +r_{i,3} + ... + r_{i, T}}{T - 1}
-$$
-
-This could be considered as the "weight" of the edge between stock $i$ and stock $j$. One sometimes need to convert weights to distance between two nodes, and a naive form is give by
+where $$\bar{r}_i = \frac{r_{i,2} +r_{i,3} + ... + r_{i, T}}{T - 1}$$. This could be considered as the "weight" of the edge between stock $ i $ and stock $ j $. One sometimes need to convert weights to distance between two nodes, and a naive form is give by
 
 $$
 d_{ij} = \sqrt{2 (1 - \rho_{ij})}
@@ -152,7 +146,7 @@ This gives the following evaluations:
 | :-----: | :---------------------: | :----------: | :-----------: | :------: |
 | LgbmRegressor | 145.64 | **3.65** | **-11.58** | 1.21 |
 | LgbmRegressor-opt | **146.73** | 2.96 | -29.79 | 1.11 |
-| .. | .. | .. | .. | .. | .. |
+| .. | .. | .. | .. | .. |
 | 40-cluster PMFG Unfiltered Spectral | 154.45 | 3.15 | **-22.69** | 1.11 |
 | 10-cluster PMFG Filtered Average Linkage | 160.95 | **3.32** | -26.77 | 1.11 |
 | 30-cluster AG Unfiltered Sub2Vec | 160.96 | 3.24 | -23.05 | 1.10 |
@@ -171,7 +165,7 @@ Since factors based on price and volume are known to have lost their predictive 
 | :-----: | :---------------------: | :----------: | :-----------: | :------: |
 | LgbmRegressor | 150.64 | 6.06 | **-4.59** | 1.23 |
 | LgbmRegressor-opt | **170.31** | 5.43 | -6.76 | 1.12 |
-| .. | .. | .. | .. | .. | .. |
+| .. | .. | .. | .. | .. |
 | 10-cluster PMFG Filtered Sub2Vec | 173.10 | 5.49 | **-5.51** | 1.12 |
 | 5-cluster MST Filtered Sub2Vec | 182.89 | 5.78 | -7.14 | 1.12 |
 | 10-cluster AG Filtered Sub2Vec | 181.50 | 5.64 | -7.40 | 1.12 |
@@ -210,7 +204,7 @@ Moreover, we notice that the majority of optimization using a dynamic ones beat 
 
 #### Filtering On Average Performs Better than Unfiltered Ones
 
-The followings are six violin plots examining if filtering helps improve Sharpe ratio. From top to bottom, we split the trained industry by number of clusters, clustering type, and graph type respectively. The left column is the full period (20170701 - 20211231) and the right column is the truncated one (20170701 - 20200701). Within each of the plot, the left portion of each violin is the unfiltered performance and the right is the filtered counterparts.
+The following robustness checks are six violin plots examining if filtering helps improve Sharpe ratio. From top to bottom, we split the trained industry by number of clusters, clustering type, and graph type respectively. The left column is the full period (20170701 - 20211231) and the right column is the truncated one (20170701 - 20200701). Within each of the plot, the left portion of each violin is the unfiltered performance and the right is the filtered counterparts.
 
 <center>
 <table>
@@ -267,11 +261,127 @@ Notice that the best fit lines reaffirm the rough equivalence between MST and PM
 
 ### Interpretability
 
-TODO: ...
+One way to explain results is by looking at the distribution of proportion of trained industry. Some trained industry classification is more uniform than the other. That is, some deviate less from a uniform distribution where the number of stocks in different industry is the same. For instance, if we need 5 industries, and have two proportions of industries:
+
+* example 1: [0.2, 0.21, 0.19, 0.19, 0.21]
+* example 2: [0.4, 0.1, 0.3, 0.3, 0.1]
+
+then example 2 is more unbalanced than example 1.
+
+Since portfolio optimization, by design, imposes a uniform limit on the industry exposure, equal weights across stocks become less feasible. The optimized results may lean more towards some specific industries, thus in short-term getting higher returns and more risks simultaneously by exposing itself to those industries. So in general, the more unbalanced, up to a certain limit, a classification is, the more likely it would obtain higher return. Also, one classification could not be trivially too unbalanced, since this fails the purpose of sector level diversification and expose oneself too much to specific stocks.  
+
+To summarize, higher return could be obtained by training a more unbalanced industry classification, but only up to a certain point. After that threshold, the risk of overinvesting particular stocks surpass its benefit and would decrease overall returns.
+
+The following verification by and large confirms our hypothesis.
+
+#### Positive Relationship Between Unbalancedness and Performance
+
+We measure the unbalancedness by calculating the total variation distance (TVD) between a trained industry proportion distribution and a uniform one. For instance, example 2 above gives a TVD of $(0.4 - 0.2)^2 +  (0.1 - 0.2)^2 + (0.3 - 0.2)^2 + (0.3 - 0.2)^2 + (0.1 - 0.2)^2 = 0.08$.  
+
+A regression of excess return Sharpe Ratio against the log-scaled TVD yields a positive, albeit weak (p-value = 0.074 for the slope), correlation, confirming the general trend of obtaining more returns by having a more unbalanced industry classification.
+
+<center>
+<figure>
+<img src="report/sharpe_by_tvd_long.png" alt="" >
+<figcaption align = "center"><b>Fig 8: AlphaSharpe vs. Log(TVD), 20170701 - 20211231, a positive correlation </b></figcaption>
+</figure>
+</center>
+
+(Note: the positive correlation becomes insignificant for the truncated time period, from 20170101 to 20200701, whose p-value is 0.147. And if split by filtered type, the correlation is likewise insignificant. For filtered part, p-value is 0.14, and for unfiltered portion, p-value is 0.315)
+
+There is also a strong correlation (p-value = 0.000 for slope) between the unbalancedness and the turnover of the portfolio, as expected, for both the full period and truncated period: leaning more towards specific industries/stocks brings a larger change in weights of stocks across days, compared to a close-to-uniform weight distribution.
+
+<center>
+<figure>
+<img src="report/turnover_by_tvd_long.png" alt="" >
+<figcaption align = "center"><b>Fig 9: Turnover vs. Log(TVD), a strong positive correlation </b></figcaption>
+</figure>
+</center>
+
+From these results, one may conclude that the increased turnover in this case adds more to return than to costs, since towards the right end, the Sharpe ratio is higher than the left.
+
+But as noted above, too unbalanced a result brings more harm than good. The sweet spot is observed to be around the unbalancedness of the static industry classification (log(TVD) = -4.33). Partitioning the dataset into the part that is less unbalanced than the static classification and the part that is more unbalanced than it, we observe a significant positive correlation for the lesser part, and trivial correlation for the greater part, for both the full period and truncated period.
+
+<center>
+<figure>
+<img src="report/sharpe_by_tvd_with_two_reg_long.png" alt="" >
+<figcaption align = "center"><b>Fig 10: AlphaSharpe vs. Log(TVD), 20170701 - 20211231 </b></figcaption>
+</figure>
+</center>
+
+<center>
+<figure>
+<img src="report/sharpe_by_tvd_with_two_reg_short.png" alt="" >
+<figcaption align = "center"><b>Fig 11: AlphaSharpe vs. Log(TVD), 20170701 - 20200701 </b></figcaption>
+</figure>
+</center>
+
+This again confirms our hypothesis where the positive correlation is valid only up to a certain threshold. It remains to show that the theoretical sweet spot is precisely or around the magnitude of deviation from uniform of th static classification.
+
+The reason that static classification serves as an empirical threshold is likely that static classification is already a "good" classification of industry, thus rendering classification more unbalanced than that too biased and risky.
+
+Moreover, we may draw a finding that to have high Sharpe ratio, one would like to train the industry to have roughly the same level of unbalancedness as the static classification one. More details to be discussed in the following section.
+
+#### Unbalancedness by Choice of Parameters
+
+The following kernel density plots by filter type, graph type, and clustering type show that unbalancedness could be use to distinguish among different choice of parameters. Viewing unbalancedness in each dimension, with the perception that higher Sharpe ratio could be obtain by getting more unbalanced classification, only up to a certain point, many of the observations derived in the result part could be explained.
+
+By filter type, the peek of the filtered version is around the static one, matching our previous observation where filtered classification performs better than unfiltered counterparts on average.
+
+<center>
+<figure>
+<img src="report/kde_tvd_by_filter.png" alt="" >
+<figcaption align = "center"><b>Fig 12: KDE by Filter Type </b></figcaption>
+</figure>
+</center>
+
+By graph type, we see that both MST and PMFG has a peek around that static one, which coincides with the previous conclusion where MST and PMFG performs better than AG. The fact that AG only consider global connections/correlations without local ones, making it harder to discover local cliques, is also reflected by the balancedness of its output classification, which shows that AG is more balanced in industry proportion distribution than others.
+
+<center>
+<figure>
+<img src="report/kde_tvd_by_graph.png" alt="" >
+<figcaption align = "center"><b>Fig 13: KDE by Graph Type </b></figcaption>
+</figure>
+</center>
+
+By clustering type, average linkage is much more unbalanced than sub2vec ones, for instance, which also matches the conclusion above that average linkage performs better than sub2vec. Notice, in particular, that though sub2vec and node2vec share the same procedure (use deep learning to obtain graph embeddings and then go through KMeans), the respective unbalancedness differ vastly.
+
+<center>
+<figure>
+<img src="report/kde_tvd_by_clustering.png" alt="" >
+<figcaption align = "center"><b>Fig 14: KDE by Clustering Type </b></figcaption>
+</figure>
+</center>
+
+#### A Closer Look at Graph Embeddings
+
+For sub2vec and node2vec, we may visualize the graph embeddings to see if clustering leans towards an unbalanced one or to the other direction.  
+
+The following are two embeddings generated by the same graph (20-cluster PMFG Filtered, on the return series of zz1000 member stocks in 20210101 - 20211231). We observe that node2vec in this case is much more unbalanced than sub2vec.
+
+<center>
+<table>
+<tr>
+<td> <img src="report/node2vec_tsne.png" alt="title" /> </td>
+<td> <img src="report/sub2vec_tsne.png" alt="title" /> </td>
+</tr>
+</table>
+<figcaption align = "center"><b>Fig 15: TSNE Plot of Node2Vec and Sub2Vec Embeddings </b></figcaption>
+</center>
+
+The reason for node2vec to have more local gathering is due to the biased random walk by design supported by node2vec. Sub2Vec, in the context of community detection, uses 2-hop neighbors as subgraphs for each node, which may have taken in insufficient amount of information to demarcate boundaries for stocks that have similar structure but are far apart from each other on graph. More investigation is required, including parameter tunning for each model to draw clearer boundaries as well as further optimize results.
 
 ## Conclusion
 
-TODO: ...
+Using a dynamic industrial classification to replace the static industry constraint in the Markowitz portfolio optimization process empirically boosts strategy performance. We implemented a dynamic industry classification training pipeline, accepting the number of clusters, the type of graphs (MST, PMFG, AG), the type of filter (filtered, unfiltered), and the type of clusterings (average linkage, spectral, node2vec, sub2vec) as parameters, and observe that on average filtered version is better than unfiltered ones and MST and PMFG are better than AG. We also conducted a simulation to demonstrate that the improvements are not due to random, and show in theory there is room for further improvement invoking the theory of efficient boundary. Lastly, we discovered that the unbalancedness of trained industry classification has a say in the final performance, where performance could be increased by training a more unbalanced classification but up to a certain threshold. The findings help explain most of our observations derived above.
+
+## Future Improvements
+
+Due to limited data and computing resources, many ideas could hardly be materialized. Readers may continue improving the results by going along the following tracks:
+
+* Incorporate features into graphs: both node2vec and sub2vec are agnostic of the underlying node features. Stocks have many features. A GCN-style of feature aggregation to train embeddings may be helpful, but whether it has information add-on by incorporating alpha factors / risk factors is subject to mathematical investigation. (Note: [[6]](#6) provides a non-exhaustive proof of that there is no correlation between portfolio optimization and using a graph structure agnostic of node features to pick stocks. It may serve as a good starting point to back theory in using GCN)
+* Replicate results after 20200701 using high-frequency data/feature/factor: current factors are not working after that. If more factors are added in, performance in the recent two years may or may not yield a different result.
+* Examine trained industry's connection with real industry: see if stocks in cluster one has a common trait and cluster two has another for more interpretability.
 
 ## Appendix: Low-Frequency Stock-Picking Procedure Breakdown
 
@@ -398,4 +508,4 @@ Bijaya Adhikari, Yao Zhang, Naren Ramakrishnan, B. Aditya Prakash (2017). Distri
 <a id="13">[13]</a>
 Jianqing Fan, Weichen Wang, Yiqiao Zhong (2016). Robust Covariance Estimation for Approximate Factor Models.
 
-TODO: add more
+Last Update: 03/08/2022
