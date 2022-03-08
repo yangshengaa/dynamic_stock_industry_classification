@@ -65,10 +65,15 @@ To control the number of industry, we pick algorithms that help generate a presc
 
 * **Spectral Clustering**
 * **Average Linkage Clustering**
-* **Node2Vec<sup>[[10]](#10)</sup> + KMeans**: conduct KMeans on Node2Vec embeddings;
-* **Sub2Vec<sup>[[11]](#11)</sup> + KMeans**: conduct KMeans on Sub2Vec embeddings.
+* **Node2Vec<sup>[[10]](#10)</sup> + KMeans**: KMeans on Node2Vec embeddings;
+* **Sub2Vec<sup>[[11]](#11)</sup> + KMeans**: KMeans on Sub2Vec embeddings.
 
-TODO: add a demo picture
+<center>
+<figure>
+<img src="report/parameter_pipeline.png" alt="parameter type" style="width:100%">
+<figcaption align = "center"><b>Fig 2: Parameter Choices </b></figcaption>
+</figure>
+</center>
 
 ### Graph Evaluation
 
@@ -81,14 +86,19 @@ We focus on the following four metrics to measure performance:
 * **Turnover**: measure the rate of invested stocks being replaced by new ones;
 * **AlphaSharpeRatio**: return / volatility, measure the ability of maximizing returns over risk.
 
-TODO: put a sample backtest plot here.
+<center>
+<figure>
+<img src="out/res/signal_test_file_20220305_short_experiment/long_0_NW1_4_Eigen_struc_240_bs_vol60_200.001_0.05_c2next_c_ret_var_penalty10_method1_style0.4_ind0.1_turnover0.9zz1000_20_PMFG_1_node2vec_10_10_0.5_2.0_100_5_0_1_1_zz1000_fmv_0.0015_100_20220305100957.png" alt="sample_test" style="width:90%">
+<figcaption align = "center"><b>Fig 3: Sample Backtest (20 Cluster PMFG Filtered Node2Vec, the best performing one) </b></figcaption>
+</figure>
+</center>
 
 The dynamic property is done by a rolling-based train test schemed outlined as follows: we train the graph using $T_{train} = 240$ days and test the performance of the graph in the following $T_{test} = 40$ days. Then we move forward $T_{test}$ days to retrain the graph. Note that the test periods are not overlapping, and the train test periods are the same in the factor combination (machine learning) part of the low-frequency stock picking paradigm. We look at the metrics of the successive testing periods in our portfolio.
 
 <center>
 <figure>
 <img src="report/rolling_test.png" alt="Trulli" style="width:100%">
-<figcaption align = "center"><b>Fig 2: Rolling Evaluation Paradigm </b></figcaption>
+<figcaption align = "center"><b>Fig 4: Rolling Evaluation Paradigm </b></figcaption>
 </figure>
 </center>
 
@@ -196,7 +206,7 @@ In the following plot, grey lines are simulated PnL curves, black line is the or
 <center>
 <figure>
 <img src="report/pnl_with_simulations.png" alt="png_with_simulations" style="width:150%">
-<figcaption align = "center"><b>Fig 3: PnL Curves with simulation </b></figcaption>
+<figcaption align = "center"><b>Fig 5: PnL Curves with simulation </b></figcaption>
 </figure>
 </center>
 
@@ -221,7 +231,7 @@ The following robustness checks are six violin plots examining if filtering help
 <td> <img src="report/shapre_by_graph_short.png" alt="title" /> </td>
 </tr>
 </table>
-<figcaption align = "center"><b>Fig 4: AlphaSharpe in Different Dimensions </b></figcaption>
+<figcaption align = "center"><b>Fig 6: AlphaSharpe in Different Dimensions </b></figcaption>
 </center>
 
 We also see that there is little difference between different number of clusters prescribed, but that average linkage performs better than node2vec and sub2vec on average, and that MST and PMFG perform better than AG on average.
@@ -235,14 +245,14 @@ Ideally, as risk increases, more returns are expected, since returns are (arguab
 <center>
 <figure>
 <img src="report/return_drawdown_long.png" alt="return drawdown long">
-<figcaption align = "center"><b>Fig 5: Return vs. Drawdown (20170701 - 20211231) </b></figcaption>
+<figcaption align = "center"><b>Fig 7: Return vs. Drawdown (20170701 - 20211231) </b></figcaption>
 </figure>
 </center>
 
 <center>
 <figure>
 <img src="report/return_drawdown_short.png" alt="return drawdown long">
-<figcaption align = "center"><b>Fig 6: Return vs. Drawdown (20170701 - 20200701) </b></figcaption>
+<figcaption align = "center"><b>Fig 8: Return vs. Drawdown (20170701 - 20200701) </b></figcaption>
 </figure>
 </center>
 
@@ -251,7 +261,7 @@ For comparison, here is the efficient frontier in theory.
 <center>
 <figure>
 <img src="report/efficient_frontier.png" alt="return drawdown long" style="width:50%">
-<figcaption align = "center"><b>Fig 7: Efficient Frontier (by Investopedia) </b></figcaption>
+<figcaption align = "center"><b>Fig 9: Efficient Frontier (by Investopedia) </b></figcaption>
 </figure>
 </center>
 
@@ -283,7 +293,7 @@ A regression of excess return Sharpe Ratio against the log-scaled TVD yields a p
 <center>
 <figure>
 <img src="report/sharpe_by_tvd_long.png" alt="" >
-<figcaption align = "center"><b>Fig 8: AlphaSharpe vs. Log(TVD), 20170701 - 20211231, a positive correlation </b></figcaption>
+<figcaption align = "center"><b>Fig 10: AlphaSharpe vs. Log(TVD), 20170701 - 20211231, a positive correlation </b></figcaption>
 </figure>
 </center>
 
@@ -294,7 +304,7 @@ There is also a strong correlation (p-value = 0.000 for slope) between the unbal
 <center>
 <figure>
 <img src="report/turnover_by_tvd_long.png" alt="" >
-<figcaption align = "center"><b>Fig 9: Turnover vs. Log(TVD), a strong positive correlation </b></figcaption>
+<figcaption align = "center"><b>Fig 11: Turnover vs. Log(TVD), a strong positive correlation </b></figcaption>
 </figure>
 </center>
 
@@ -305,14 +315,14 @@ But as noted above, too unbalanced a result brings more harm than good. The swee
 <center>
 <figure>
 <img src="report/sharpe_by_tvd_with_two_reg_long.png" alt="" >
-<figcaption align = "center"><b>Fig 10: AlphaSharpe vs. Log(TVD), 20170701 - 20211231 </b></figcaption>
+<figcaption align = "center"><b>Fig 12: AlphaSharpe vs. Log(TVD), 20170701 - 20211231 </b></figcaption>
 </figure>
 </center>
 
 <center>
 <figure>
 <img src="report/sharpe_by_tvd_with_two_reg_short.png" alt="" >
-<figcaption align = "center"><b>Fig 11: AlphaSharpe vs. Log(TVD), 20170701 - 20200701 </b></figcaption>
+<figcaption align = "center"><b>Fig 13: AlphaSharpe vs. Log(TVD), 20170701 - 20200701 </b></figcaption>
 </figure>
 </center>
 
@@ -331,7 +341,7 @@ By filter type, the peek of the filtered version is around the static one, match
 <center>
 <figure>
 <img src="report/kde_tvd_by_filter.png" alt="" >
-<figcaption align = "center"><b>Fig 12: KDE by Filter Type </b></figcaption>
+<figcaption align = "center"><b>Fig 14: KDE by Filter Type </b></figcaption>
 </figure>
 </center>
 
@@ -340,7 +350,7 @@ By graph type, we see that both MST and PMFG has a peek around that static one, 
 <center>
 <figure>
 <img src="report/kde_tvd_by_graph.png" alt="" >
-<figcaption align = "center"><b>Fig 13: KDE by Graph Type </b></figcaption>
+<figcaption align = "center"><b>Fig 15: KDE by Graph Type </b></figcaption>
 </figure>
 </center>
 
@@ -349,7 +359,7 @@ By clustering type, average linkage is much more unbalanced than sub2vec ones, f
 <center>
 <figure>
 <img src="report/kde_tvd_by_clustering.png" alt="" >
-<figcaption align = "center"><b>Fig 14: KDE by Clustering Type </b></figcaption>
+<figcaption align = "center"><b>Fig 16: KDE by Clustering Type </b></figcaption>
 </figure>
 </center>
 
@@ -366,7 +376,7 @@ The following are two embeddings generated by the same graph (20-cluster PMFG Fi
 <td> <img src="report/sub2vec_tsne.png" alt="title" /> </td>
 </tr>
 </table>
-<figcaption align = "center"><b>Fig 15: TSNE Plot of Node2Vec and Sub2Vec Embeddings </b></figcaption>
+<figcaption align = "center"><b>Fig 17: TSNE Plot of Node2Vec and Sub2Vec Embeddings </b></figcaption>
 </center>
 
 The reason for node2vec to have more local gathering is due to the biased random walk by design supported by node2vec. Sub2Vec, in the context of community detection, uses 2-hop neighbors as subgraphs for each node, which may have taken in insufficient amount of information to demarcate boundaries for stocks that have similar structure but are far apart from each other on graph. More investigation is required, including parameter tunning for each model to draw clearer boundaries as well as further optimize results.
@@ -422,7 +432,7 @@ to predict future stock returns. Suppose we have $ N $ assets, $ K $ factors, an
 <center>
 <figure>
 <img src="report/ML_Paradigm.png" alt="Trulli" style="width:=60%">
-<figcaption align = "center"><b>Fig 3: Construction of Features X and Observation y </b></figcaption>
+<figcaption align = "center"><b>Fig 18: Construction of Features X and Observation y </b></figcaption>
 </figure>
 </center>
 
@@ -461,7 +471,7 @@ Each constraint comes with a different purpose:
 
 ## Acknowledgement
 
-Special thanks to coworkers and my best friends at Shanghai Probability Quantitative Investment: Beilei Xu, Zhongyuan Wang, Zhenghang Xie, Cong Chen, Yihao Zhou, Weilin Chen, Yuhan Tao, Wan Zheng, and many others. This project would be impossible without their data, insights, and experiences.
+Special thanks to coworkers and my best friends met at Shanghai Probability Quantitative Investment: Beilei Xu, Zhongyuan Wang, Zhenghang Xie, Cong Chen, Yihao Zhou, Weilin Chen, Yuhan Tao, Wan Zheng, and many others. This project would be impossible without their data, insights, and experiences.
 
 ## Reference
 
